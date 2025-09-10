@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Buds at Work</title>
+  <style>
+    :root{--green:#11785A;--green-d:#0D5F51;--mustard:#F4A21F;--ink:#111111;--white:#FFFFFF;--ivory:#F8FBF7}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,Arial,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--green);color:var(--white);font-weight:600;line-height:1.7}
+    header{position:sticky;top:0;z-index:200;background:var(--green-d);color:var(--white);padding:1rem 2rem;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+    .brand{display:flex;align-items:center;gap:.6rem;font-weight:900;color:var(--mustard);font-size:1.25rem;cursor:pointer;text-decoration:none}
+    .brand img{height:44px;width:auto}
+    nav{display:flex;flex-wrap:wrap;align-items:center;gap:1.25rem}
+    nav a{color:var(--white);text-decoration:none;font-weight:800;font-size:1.05rem}
+    nav a:hover{color:var(--mustard)}
+    nav a.active{color:var(--mustard)}
+    .cart-pill{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);padding:.35rem .6rem;border-radius:999px;font-weight:900}
+    .admin-link{margin-left:1.5rem}
+    main{min-height:60vh}
+    section{padding:5rem 2rem;max-width:1200px;margin:auto}
+    h1{font-size:clamp(2.6rem,6vw,3.6rem);font-weight:900;color:var(--white);line-height:1.15;margin:.25rem 0 1rem}
+    h2{font-size:2rem;font-weight:900;color:var(--mustard);margin:0 0 .75rem}
+    h3{font-size:1.25rem;font-weight:800;color:var(--white)}
+    p{font-size:1.1rem;margin:.25rem 0 1rem}
+    .card{background:var(--white);color:var(--ink);border-radius:16px;padding:2rem;box-shadow:0 6px 18px rgba(0,0,0,.12)}
+    .subtle{color:#d7efe6;opacity:.95;font-weight:700;letter-spacing:.02em}
+    .btn{display:inline-block;border:none;border-radius:12px;padding:1rem 1.5rem;font-weight:900;font-size:1.05rem;cursor:pointer}
+    .btn-primary{background:var(--mustard);color:var(--ink)}
+    .btn-outline{background:var(--white);color:var(--green-d);border:2px solid var(--green-d)}
+    .btn-row{display:flex;gap:.9rem;flex-wrap:wrap;align-items:center}
+    .grid{display:grid;gap:1.25rem;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+    .grid2{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+    input,select,textarea{width:100%;padding:.85rem 1rem;border-radius:12px;border:1px solid rgba(0,0,0,.18);font:inherit;background:#fff;color:var(--ink)}
+    textarea{min-height:120px}
+    label{font-weight:800;display:block;margin-bottom:.25rem}
+    .required::after{content:" *";color:#c83333;font-weight:900}
+    .hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:2rem;align-items:center}
+    .hero-copy{display:grid;gap:1rem}
+    .hero-photo{border-radius:18px;overflow:hidden;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.22)}
+    .hero-photo img{width:100%;height:auto;display:block}
+    @media (max-width:920px){.hero-grid{grid-template-columns:1fr}}
+    table{width:100%;border-collapse:separate;border-spacing:0 8px}
+    th,td{text-align:left;padding:.8rem 1rem;background:#fff;color:#111}
+    th{background:#f3f6f5}
+    tr td:first-child,tr th:first-child{border-top-left-radius:10px;border-bottom-left-radius:10px}
+    tr td:last-child,tr th:last-child{border-top-right-radius:10px;border-bottom-right-radius:10px}
+    footer{background:var(--green-d);color:var(--white);padding:2rem;text-align:center;font-weight:700;margin-top:4rem}
+    .hidden{display:none!important}
+  </style>
+  <script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+  <header>
+    <a class="brand" id="brandHome" href="#/" title="Go home">
+      <img src="ChatGPT Image Sep 8, 2025 at 05_01_59 PM.png" alt="Buds at Work logo" onerror="this.style.display='none'"/> Buds at Work
+    </a>
+    <nav id="mainNav">
+      <a data-route="#/" href="#/">Home</a>
+      <a data-route="#/services" href="#/services">Services</a>
+      <a data-route="#/shop" href="#/shop">Shop</a>
+      <a data-route="#/donate" href="#/donate">Donate Items</a>
+      <a data-route="#/pricing" href="#/pricing">Pricing</a>
+      <a data-route="#/join-us" href="#/join-us">Join Us</a>
+      <a data-route="#/contact" href="#/contact">Contact</a>
+      <a data-route="#/cart" href="#/cart" class="cart-pill">Cart <span id="cartCount">0</span></a>
+      <a data-route="#/admin" href="#/admin" class="admin-link">Admin</a>
+    </nav>
+  </header>
+  <main id="app" role="main"></main>
+  <footer>
+    <p>&copy; 2025 Buds at Work. All rights reserved. | <a href="mailto:budsatwork0@gmail.com" style="color:#fff;font-weight:800">budsatwork0@gmail.com</a></p>
+  </footer>
+  <script>
+    const app=document.getElementById('app');
+    const CART_KEY='buds_cart_v1';
+    const cartStore={get(){try{return JSON.parse(localStorage.getItem(CART_KEY)||'[]')}catch{return[]}},set(v){localStorage.setItem(CART_KEY,JSON.stringify(v));updateCartCount()},add(item){const s=this.get();const ix=s.findIndex(i=>i.slug===item.slug);if(ix>-1){s[ix].qty+=item.qty||1}else{s.push({...item,qty:item.qty||1})}this.set(s)},remove(slug){this.set(this.get().filter(i=>i.slug!==slug))},clear(){this.set([])}};
+    function updateCartCount(){const n=cartStore.get().reduce((a,b)=>a+(b.qty||0),0);const el=document.getElementById('cartCount');if(el)el.textContent=String(n)}
+    const routes={'#/':renderHome,'#/services':renderServices,'#/shop':renderShop,'#/donate':renderDonate,'#/pricing':renderPricing,'#/join-us':renderJoinUs,'#/contact':renderContact,'#/cart':renderCart,'#/admin':renderAdmin};
+    function highlight(path){document.querySelectorAll('#mainNav a').forEach(a=>a.classList.toggle('active',a.getAttribute('data-route')===path))}
+    function go(path){if(!(path in routes))path='#/';routes[path]();highlight(path);window.scrollTo({top:0,behavior:'auto'})}
+    document.getElementById('mainNav').addEventListener('click',e=>{const a=e.target.closest('a[data-route]');if(!a)return;e.preventDefault();go(a.getAttribute('data-route'))});
+    document.getElementById('brandHome').addEventListener('click',e=>{e.preventDefault();go('#/')});
+    window.addEventListener('hashchange',()=>{const p=location.hash||'#/' ;(routes[p]||renderHome)();highlight(p)});
+    function renderHome(){app.innerHTML=`
+      <section class="hero">
+        <div class="hero-grid">
+          <div class="hero-copy">
+            <span class="subtle">Reliable. Friendly. NDIS‑aware.</span>
+            <h1>Busy?<br><span style="color:var(--mustard)">Leave it to Buds</span></h1>
+            <p>We help with lawn care, cleaning, dump runs, and more across South‑East Brisbane — while creating meaningful work for people with disabilities.</p>
+            <div class="btn-row">
+              <button class="btn btn-primary" id="homeBook">Book Now</button>
+              <button class="btn btn-outline" id="homeServices">View Services</button>
+            </div>
+          </div>
+          <figure class="hero-photo">
+            <img src="IMG_0868_resized.jpg" alt="Buds at Work team" onerror="this.parentElement.style.display='none'"/>
+          </figure>
+        </div>
+      </section>
+      <section class="services">
+        <h2>What We Can Do Today</h2>
+        <div class="grid">
+          <div class="card"><h3>Car Detailing</h3><p>Interior & exterior, spotless and fast.</p></div>
+          <div class="card"><h3>House Cleaning</h3><p>Regular or deep cleans that shine.</p></div>
+          <div class="card"><h3>Dump Runs</h3><p>We haul it away — green waste & rubbish.</p></div>
+          <div class="card"><h3>Lawn & Garden Care</h3><p>Mowing, edging, hedging, tidy‑ups.</p></div>
+          <div class="card"><h3>Window Cleaning</h3><p>Crystal clear, streak‑free windows.</p></div>
+          <div class="card"><h3>Property Maintenance</h3><p>Small fixes, installs & odd jobs.</p></div>
+        </div>
+        <div class="btn-row" style="margin-top:1rem">
+          <button class="btn btn-primary" id="homeQuote">Get a Quote</button>
+          <button class="btn btn-outline" id="homeShop">Shop Products</button>
+        </div>
+      </section>
+      <section class="grow" style="padding-top:2rem">
+        <h2>Grow With Us</h2>
+        <div class="card">
+          <p>Buds at Work pairs quality services with inclusive employment. If you're a participant or a support worker, we welcome your Expression of Interest. Partnerships are always optional — there is no expectation or requirement.</p>
+          <div class="btn-row" style="justify-content:flex-end">
+            <button class="btn btn-outline" id="ctaJoin">Join Us (EOI)</button>
+            <button class="btn btn-primary" id="ctaPartner">Explore Partnerships</button>
+          </div>
+        </div>
+      </section>
+    `;document.getElementById('homeBook').onclick=()=>go('#/pricing');document.getElementById('homeServices').onclick=()=>go('#/services');document.getElementById('homeQuote').onclick=()=>go('#/pricing');document.getElementById('homeShop').onclick=()=>go('#/shop');const j=document.getElementById('ctaJoin');if(j)j.onclick=()=>go('#/join-us');const pa=document.getElementById('ctaPartner');if(pa)pa.onclick=()=>go('#/donate')}
+    function renderServices(){app.innerHTML=`
+      <section class="services">
+        <h2>Our Services</h2>
+        <div class="grid">
+          <div class="card"><h3>Car Detailing</h3><p>Professional interior & exterior cleaning.</p></div>
+          <div class="card"><h3>House Cleaning</h3><p>Reliable, thorough home cleaning.</p></div>
+          <div class="card"><h3>Dump Runs</h3><p>Rubbish and green waste removal.</p></div>
+          <div class="card"><h3>Lawn & Garden Care</h3><p>Mowing, edging, hedges, tidy‑ups.</p></div>
+          <div class="card"><h3>Window Cleaning</h3><p>Streak‑free residential and commercial.</p></div>
+          <div class="card"><h3>Property Maintenance</h3><p>Minor repairs and installs.</p></div>
+        </div>
+      </section>
+    `}
+    function renderShop(){app.innerHTML=`
+      <section class="shop">
+        <h2>Shop Our Products</h2>
+        <p class="subtle">Quality workwear, tools we use, and cleaning essentials.</p>
+        <div class="grid" id="shopGrid">
+          <div class="card"><h3 style="color:var(--green-d)">Window Squeegee Kit</h3><p class="price" style="color:var(--mustard);font-weight:900">$35.00</p><button class="btn btn-primary add" data-name="Window Squeegee Kit" data-price="35" data-slug="window-squeegee-kit">Add to Cart</button></div>
+          <div class="card"><h3 style="color:var(--green-d)">Buds Work Shirt</h3><p class="price" style="color:var(--mustard);font-weight:900">$39.00</p><button class="btn btn-primary add" data-name="Buds Work Shirt" data-price="39" data-slug="buds-work-shirt">Add to Cart</button></div>
+          <div class="card"><h3 style="color:var(--green-d)">Cleaning Essentials Pack</h3><p class="price" style="color:var(--mustard);font-weight:900">$30.00</p><button class="btn btn-primary add" data-name="Cleaning Essentials Pack" data-price="30" data-slug="cleaning-essentials-pack">Add to Cart</button></div>
+        </div>
+        <div class="btn-row" style="margin-top:1rem"><button class="btn btn-outline" id="viewCart">View Cart</button></div>
+      </section>
+    `;document.querySelectorAll('.add').forEach(b=>b.addEventListener('click',()=>{cartStore.add({slug:b.dataset.slug,name:b.dataset.name,price:Number(b.dataset.price)});updateCartCount()}));document.getElementById('viewCart').onclick=()=>go('#/cart')}
+    function renderCart(){const items=cartStore.get();const total=items.reduce((a,b)=>a+b.price*(b.qty||1),0);app.innerHTML=`
+      <section class="cart">
+        <h2>Your Cart</h2>
+        ${items.length?`
+          <div class="card">
+            <table>
+              <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th></th></tr></thead>
+              <tbody>
+                ${items.map(i=>`<tr><td>${i.name}</td><td>${i.qty}</td><td>$${(i.price*i.qty).toFixed(2)}</td><td><button class="btn btn-outline rm" data-slug="${i.slug}">Remove</button></td></tr>`).join('')}
+              </tbody>
+            </table>
+            <div class="btn-row" style="justify-content:space-between;align-items:center;margin-top:1rem">
+              <strong style="color:#111">Total: $${total.toFixed(2)}</strong>
+              <button class="btn btn-primary" id="checkout">Checkout (demo)</button>
+            </div>
+          </div>
+        `:`<p class="subtle">Your cart is empty. Go to the <a href="#/shop">Shop</a> to add items.</p>`}
+      </section>
+    `;document.querySelectorAll('.rm').forEach(b=>b.addEventListener('click',()=>{cartStore.remove(b.dataset.slug);renderCart()}));const co=document.getElementById('checkout');if(co)co.addEventListener('click',()=>{alert('Checkout to be wired.')})}
+    function renderDonate(){app.innerHTML=`
+      <section class="donate">
+        <h2>Donate Items / Partner with Us</h2>
+        <div class="card">
+          <form id="donateForm">
+            <div class="grid2">
+              <div><label class="required" for="donor">Business / Donor Name</label><input id="donor" required placeholder="e.g., Bunnings Warehouse"></div>
+              <div><label class="required" for="dcontact">Contact Person</label><input id="dcontact" required></div>
+              <div><label class="required" for="demail">Email</label><input id="demail" type="email" required></div>
+              <div><label class="required" for="dphone">Phone</label><input id="dphone" required></div>
+            </div>
+            <div><label class="required" for="ditems">Items to Donate</label><textarea id="ditems" required placeholder="e.g., mowers, blowers, hose reels, safety gear"></textarea></div>
+            <div class="btn-row" style="justify-content:flex-end"><button type="submit" class="btn btn-primary">Submit Donation Offer</button></div>
+          </form>
+        </div>
+      </section>
+    `;document.getElementById('donateForm').addEventListener('submit',e=>{e.preventDefault();alert('Donation submitted (demo).');go('#/')})}
+    function renderPricing(){app.innerHTML=`
+      <section class="pricing">
+        <h2>Pricing & Book a Service</h2>
+        <div class="grid">
+          <div class="card"><h3>Cleaning</h3><p>$50/hr</p></div>
+          <div class="card"><h3>Lawn & Garden Care</h3><p>From $50</p></div>
+          <div class="card"><h3>Dump Runs</h3><p>From $120</p></div>
+          <div class="card"><h3>Property Maintenance</h3><p>From $60/hr</p></div>
+        </div>
+        <div class="card" style="margin-top:1.25rem">
+          <h3 style="color:var(--green-d)">Get a Quote / Book Now</h3>
+          <form id="bookingForm">
+            <div class="grid2">
+              <div><label class="required" for="bname">Name</label><input id="bname" required></div>
+              <div><label class="required" for="bemail">Email</label><input id="bemail" type="email" required></div>
+              <div><label class="required" for="bphone">Phone</label><input id="bphone" required></div>
+              <div><label class="required" for="bsuburb">Suburb</label><input id="bsuburb" required placeholder="e.g., South‑East Brisbane"></div>
+            </div>
+            <div class="grid2">
+              <div><label class="required" for="bservice">Service</label>
+                <select id="bservice" required>
+                  <option>House Cleaning</option><option>Car Detailing</option><option>Lawn & Garden Care</option><option>Window Cleaning</option><option>Dump Runs</option><option>Property Maintenance</option>
+                </select>
+              </div>
+              <div><label class="required" for="btype">Request Type</label>
+                <select id="btype" required>
+                  <option value="quote">Quote</option><option value="booking">Booking</option>
+                </select>
+              </div>
+            </div>
+            <div class="grid2">
+              <div><label for="bdate">Preferred Date</label><input id="bdate" type="date"></div>
+              <div><label for="btime">Preferred Time</label><input id="btime" type="time"></div>
+            </div>
+            <div><label for="bdetails">Details</label><textarea id="bdetails" placeholder="Tell us about rooms, yard size, access, etc."></textarea></div>
+            <div class="btn-row" style="justify-content:flex-end"><button class="btn btn-primary">Submit</button></div>
+          </form>
+        </div>
+      </section>
+    `;document.getElementById('bookingForm').addEventListener('submit',e=>{e.preventDefault();alert('Request sent (demo).')})}
+    function renderJoinUs(){app.innerHTML=`
+      <section class="eoi">
+        <h2>Join Us — Expression of Interest</h2>
+        <div class="card">
+          <form id="eoiForm">
+            <div><label class="required" for="role">I am a</label>
+              <select id="role" required>
+                <option value="participant">Participant (living with disability)</option>
+                <option value="supportworker">Support Worker (on behalf of participant)</option>
+              </select>
+            </div>
+            <div class="grid2">
+              <div><label class="required" for="ename">Your Name</label><input id="ename" required></div>
+              <div><label class="required" for="eemail">Email</label><input id="eemail" type="email" required></div>
+              <div><label class="required" for="ephone">Phone</label><input id="ephone" required></div>
+              <div><label class="required" for="eloc">Location</label><input id="eloc" required></div>
+            </div>
+            <div class="grid2">
+              <div><label class="required" for="pname">Participant Name</label><input id="pname" required></div>
+              <div><label for="pemail">Participant Email (optional)</label><input id="pemail" type="email"></div>
+              <div><label class="required" for="interests">Preferred Work Areas</label>
+                <select id="interests" required>
+                  <option>Car Detailing</option><option>House Cleaning</option><option>Dump Runs</option><option>Lawn & Garden Care</option><option>Window Cleaning</option><option>Property Maintenance</option>
+                </select>
+              </div>
+              <div><label class="required" for="avail">Availability</label><input id="avail" required placeholder="e.g., Weekdays 9–3"></div>
+            </div>
+            <div><label for="supports">Supports / Access Needs</label><textarea id="supports"></textarea></div>
+            <div class="btn-row" style="justify-content:flex-end"><button class="btn btn-primary">Submit EOI</button></div>
+          </form>
+        </div>
+      </section>
+    `;document.getElementById('eoiForm').addEventListener('submit',e=>{e.preventDefault();alert('EOI submitted (demo).')})}
+    function renderContact(){app.innerHTML=`
+      <section class="contact">
+        <h2>Start a Yarn — Contact Us</h2>
+        <div class="card">
+          <form id="contactForm">
+            <div class="grid2">
+              <div><label for="c_name" class="required">Name</label><input id="c_name" required placeholder="Your full name"/></div>
+              <div><label for="c_email" class="required">Email</label><input id="c_email" type="email" required placeholder="name@example.com"/></div>
+              <div><label for="c_phone">Phone</label><input id="c_phone" placeholder="04xx xxx xxx"/></div>
+            </div>
+            <div><label for="c_msg" class="required">Your Yarn / Message</label><textarea id="c_msg" required placeholder="Tell us your story, question, or idea"></textarea></div>
+            <div class="btn-row" style="justify-content:flex-end"><button type="submit" class="btn btn-primary">Send Yarn</button></div>
+          </form>
+        </div>
+      </section>
+    `;document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDefault();alert('Thanks for reaching out, we will be in touch soon.')})}
+    function renderAdmin(){app.innerHTML=`
+      <section class="admin">
+        <h2>Admin — Manage Submissions</h2>
+        <div class="card" id="adminGate">
+          <p style="margin-top:0">Enter passcode to view submissions.</p>
+          <div class="grid2"><div><label for="adm_code" class="required">Passcode</label><input id="adm_code" type="password" placeholder="••••••"/></div></div>
+          <div class="btn-row" style="justify-content:flex-end"><button class="btn btn-primary" id="adm_enter">Enter</button></div>
+          <p class="subtle">Default demo passcode: <strong>budsadmin</strong></p>
+        </div>
+        <div id="adminPanels" class="hidden">
+          <div class="card"><h3 style="color:var(--green-d)">Service Requests</h3><div id="tbl_requests">(demo)</div></div>
+          <div class="card" style="margin-top:1rem"><h3 style="color:var(--green-d)">Donations</h3><div id="tbl_donations">(demo)</div></div>
+          <div class="card" style="margin-top:1rem"><h3 style="color:var(--green-d)">EOI Submissions</h3><div id="tbl_eoi">(demo)</div></div>
+          <div class="card" style="margin-top:1rem"><h3 style="color:var(--green-d)">Orders</h3><div id="tbl_orders">(demo)</div></div>
+        </div>
+      </section>
+    `;const gate=document.getElementById('adminGate');const panels=document.getElementById('adminPanels');function openPanels(){gate.classList.add('hidden');panels.classList.remove('hidden')}const ok=sessionStorage.getItem('adm_ok')==='1';if(ok){openPanels()}document.getElementById('adm_enter').addEventListener('click',()=>{const code=(document.getElementById('adm_code')||{}).value||'';const expected='budsadmin';if(code===expected){sessionStorage.setItem('adm_ok','1');openPanels()}else{alert('Wrong passcode')}})}
+    function boot(){updateCartCount();const p=location.hash||'#/' ;(routes[p]||renderHome)();highlight(p)}
+    if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',boot)}else{boot()}
+    console.assert(typeof routes['#/']==='function','Home route missing');
+    console.assert(typeof renderHome==='function','renderHome missing');
+    renderHome();
+    console.assert(app.innerHTML.length>0,'Home did not render');
+  </script>
+</body>
+</html>
