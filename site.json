@@ -1,17 +1,36 @@
 {
-  "brand": "Buds at Work",
-  "colors": { "primary": "#0f3d2e", "accent": "#c9a227", "paper": "#fff6e8" },
-  "features": {
-    "faq": false,
-    "gallery": true,
-    "biggerHero": false,
-    "roundedButtons": false,
-    "heroImage": ""
+  "brand": "buds at work ipswich",
+  "colors": {
+    "primary": "#0f3d2e",
+    "accent": "#ef5350",
+    "paper": "#fff6e8"
   },
-  "contact": { "email": "budsatwork@malucare.org", "phone": "0474 766 703" },
+  "features": {
+    "faq": true,
+    "gallery": true,
+    "biggerHero": true,
+    "roundedButtons": true,
+    "heroImage": "https://images.unsplash.com/photo-1521207418485-99c705420785?q=80&w=2048&auto=format&fit=crop"
+  },
+  "contact": {
+    "email": "budsatwork@malucare.org",
+    "phone": "0474 766 703"
+  },
   "services": [
-    { "title": "Window Cleaning", "desc": "Streak-free residential & commercial.", "price": "from $80" },
-    { "title": "Lawn & Garden", "desc": "Mowing, edging, hedges, tidy-ups.", "price": "from $50/hr" },
-    { "title": "Dump Runs", "desc": "Rubbish & green waste removal.", "price": "from $80/m³" }
+    {
+      "title": "Window Cleaning",
+      "desc": "Streak-free residential & commercial.",
+      "price": "from $80"
+    },
+    {
+      "title": "Lawn & Garden",
+      "desc": "Mowing, edging, hedges, tidy-ups.",
+      "price": "from $50/hr"
+    },
+    {
+      "title": "Dump Runs",
+      "desc": "Rubbish & green waste removal.",
+      "price": "from $80/m³"
+    }
   ]
 }
