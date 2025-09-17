@@ -1,39 +1,56 @@
 name: Prompt to Pages
 on:
-  issues:
-    types: [opened, edited, labeled]
   issue_comment:
     types: [created]
+  issues:
+    types: [opened, edited, labeled]
   workflow_dispatch:
     inputs:
       prompt:
         description: "Manual prompt"
         required: false
+  push:
+    paths:
+      - 'site.json'
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 concurrency:
   group: pages
   cancel-in-progress: false
+
 jobs:
-  generate:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm ci || true
-      - run: npm run build:from:issue
-      - uses: actions/upload-pages-artifact@v3
+
+      - name: Apply comment to site.json (if /deploy)
+        run: node scripts/comment_to_config.js
+
+      - name: Commit site.json changes (if any)
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: apply prompt to site.json [skip ci]"
+          file_pattern: site.json
+
+      - name: Install deps (optional)
+        run: npm ci || true
+
+      - name: Build site
+        run: npm run build:from:issue
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
           path: dist
-  deploy:
-    needs: generate
-    environment:
-      name: github-pages
-    runs-on: ubuntu-latest
-    steps:
-      - id: deployment
+
+      - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
+        id: deployment
