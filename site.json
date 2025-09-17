@@ -1,0 +1,17 @@
+{
+  "brand": "Buds at Work",
+  "colors": { "primary": "#0f3d2e", "accent": "#c9a227", "paper": "#fff6e8" },
+  "features": {
+    "faq": false,
+    "gallery": true,
+    "biggerHero": false,
+    "roundedButtons": false,
+    "heroImage": ""
+  },
+  "contact": { "email": "budsatwork@malucare.org", "phone": "0474 766 703" },
+  "services": [
+    { "title": "Window Cleaning", "desc": "Streak-free residential & commercial.", "price": "from $80" },
+    { "title": "Lawn & Garden", "desc": "Mowing, edging, hedges, tidy-ups.", "price": "from $50/hr" },
+    { "title": "Dump Runs", "desc": "Rubbish & green waste removal.", "price": "from $80/m³" }
+  ]
+}
