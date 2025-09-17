@@ -123,8 +123,135 @@ function baseCSS({ primary, accent, paper }){
 .container{max-width:1100px;margin:0 auto;padding:24px}
 .row{display:flex;gap:24px;align-items:center;justify-content:space-between}
 .grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
-.site-header{position:sticky;top:0;background:rgba(15,61,46,.95);color:#fff;border-bot
+.site-header{position:sticky;top:0;background:rgba(15,61,46,.95);color:#fff;border-bottom:1px solid rgba(255,255,255,.08);z-index:20;backdrop-filter:saturate(140%) blur(6px);transition:all .2s ease}
+.site-header.scrolled{background:rgba(15,61,46,.86);box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.brand{display:flex;align-items:center;gap:10px;letter-spacing:.4px}
+.brand .dot{width:12px;height:12px;border-radius:999px;background:var(--accent);display:inline-block}
+.nav a{color:#fff;text-decoration:none;margin-left:18px;opacity:.95}
+.nav a:hover{opacity:1}
+.nav .btn{background:var(--accent);color:#111;padding:10px 14px;border-radius:10px}
+.hero{background:linear-gradient(135deg, rgba(15,61,46,.92), rgba(15,61,46,.65)), url('data:image/svg+xml;utf8,${encodeURIComponent(heroNoiseSVG())}') center/cover no-repeat;color:#fff}
+.hero .container{padding:96px 24px}
+.hero h1{font-size:48px;line-height:1.05;margin:0 0 10px;letter-spacing:-.02em}
+.hero p{opacity:.9;max-width:760px}
+.actions{display:flex;gap:12px;margin-top:18px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 16px;border:1px solid rgba(0,0,0,.08);border-radius:12px;text-decoration:none;cursor:pointer;transition:transform .15s ease, box-shadow .2s ease}
+.btn.primary{background:var(--accent);color:#111;border:none}
+.btn.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.5)}
+.btn:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
+.btn:active{transform:translateY(0) scale(.98)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.section{padding:54px 0}
+.section.alt{background:rgba(0,0,0,.03)}
+.card{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:var(--radius);padding:18px;box-shadow:0 1px 0 rgba(0,0,0,.02)}
+.card h3{margin:0 0 6px}
+.card .price{margin-top:10px;font-weight:600;color:var(--primary)}
+.ticks{list-style:none;padding:0;margin:0}
+.ticks li{padding-left:26px;position:relative;margin:8px 0}
+.ticks li::before{content:"";position:absolute;left:0;top:8px;width:16px;height:16px;border-radius:4px;background:var(--accent)}
+.testimonial blockquote{margin:0 0 8px;font-size:18px}
+.who{color:var(--muted)}
+.work-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.work{aspect-ratio:4/3;border-radius:var(--radius);border:1px solid rgba(0,0,0,.06);background:linear-gradient(135deg, rgba(0,0,0,.06), rgba(0,0,0,.02));position:relative;overflow:hidden}
+.work.ph::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(45deg, rgba(0,0,0,.06) 0 10px, rgba(255,255,255,.06) 10px 20px)}
+.site-footer{background:#0f3d2e;color:#fff}
+.site-footer .muted{opacity:.8}
+.site-footer .contact{display:flex;gap:10px}
+.site-footer input{border-radius:10px;padding:10px;border:none}
+@media (max-width:900px){ .grid-3{grid-template-columns:1fr} .row{flex-direction:column;align-items:flex-start} .site-footer .contact{flex-direction:column;align-items:stretch;width:100%} .work-grid{grid-template-columns:1fr} }
+`;
+}
 
+function baseJS(){
+  return `(() => {
+  const form = document.querySelector('.contact');
+  form?.addEventListener('submit', (e)=>{ e.preventDefault(); alert('Thanks! We\\'ll be in touch.'); });
+  const header = document.querySelector('.site-header');
+  const onScroll = () => header && header.classList.toggle('scrolled', window.scrollY > 8);
+  onScroll();
+  window.addEventListener('scroll', onScroll, { passive: true });
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', (e)=>{
+      const id = a.getAttribute('href').slice(1);
+      const el = document.getElementById(id);
+      if (el) { e.preventDefault(); el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    });
+  });
+})();`;
+}
+
+function escapeHTML(s){
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+function mockPlanFromPrompt(prompt){
+  const p = (prompt || '').toLowerCase();
+  return {
+    brand: /buds/.test(p) ? "Buds at Work" : /volu/.test(p) ? "Volu" : "My Brand",
+    primary: /purple|lavender/.test(p) ? "#6A1B9A" : "#0f3d2e",
+    accent: /coral/.test(p) ? "#ef5350" : /mustard|yellow/.test(p) ? "#c9a227" : "#10b981",
+    paper: /cream|ivory/.test(p) ? "#fff6e8" : "#f8fafb",
+    services: [
+      { title: /window/.test(p) ? "Window Cleaning" : "Product One", desc: "Streak-free shine.", price: "from $80" },
+      { title: /lawn|garden/.test(p) ? "Lawn & Garden" : "Product Two", desc: "Neat lawns, tidy hedges.", price: "from $50/hr" },
+      { title: /dump|rubbish/.test(p) ? "Dump Runs" : "Product Three", desc: "We haul it away.", price: "from $80/m³" }
+    ],
+    extras: { testimonials: true, faq: /faq/.test(p) }
+  };
+}
+
+function faqHTML(){
+  return `
+<section class="section" id="faq">
+  <div class="container">
+    <h2>FAQs</h2>
+    <details class="card"><summary>Are you insured?</summary><div>Yes — we carry public liability insurance.</div></details>
+    <details class="card"><summary>Do you bring gear?</summary><div>All equipment provided unless requested otherwise.</div></details>
+  </div>
+</section>`;
+}
+
+function renderFromSpec(spec){
+  const b = escapeHTML(spec.brand);
+  const s0 = { title: escapeHTML(spec.services[0].title), desc: escapeHTML(spec.services[0].desc), price: escapeHTML(spec.services[0].price) };
+  const s1 = { title: escapeHTML(spec.services[1].title), desc: escapeHTML(spec.services[1].desc), price: escapeHTML(spec.services[1].price) };
+  const s2 = { title: escapeHTML(spec.services[2].title), desc: escapeHTML(spec.services[2].desc), price: escapeHTML(spec.services[2].price) };
+  const html = baseHTML()
+    .replaceAll("Buds at Work", b)
+    .replaceAll("Window Cleaning", s0.title)
+    .replaceAll("Streak-free residential & commercial.", s0.desc)
+    .replaceAll("from $80", s0.price)
+    .replaceAll("Lawn & Garden", s1.title)
+    .replaceAll("Mowing, edging, hedges, tidy-ups.", s1.desc)
+    .replaceAll("from $50/hr", s1.price)
+    .replaceAll("Dump Runs", s2.title)
+    .replaceAll("Rubbish & green waste removal.", s2.desc)
+    .replaceAll("from $80/m³", s2.price)
+    + (spec.extras.faq ? faqHTML() : "");
+  const css = baseCSS({ primary: spec.primary, accent: spec.accent, paper: spec.paper });
+  const js = baseJS();
+  return composeSrcDoc(html, css, js);
+}
+
+function composeSrcDoc(html, css, js) {
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="theme-color" content="#0f3d2e"/><title>Buds at Work</title><meta name="description" content="Local help for windows, lawns & dump runs — fast quotes, friendly service."/><style>${css}</style></head><body>${html}<script>${js}<\/script></body></html>`;
+}
+
+function main(){
+  const cli = argsPrompt();
+  const evt = loadEventPrompt();
+  const prompt = cli || evt;
+  if (!prompt) {
+    fs.mkdirSync('dist', { recursive: true });
+    fs.writeFileSync(path.join('dist','index.html'), renderFromSpec(mockPlanFromPrompt('fallback')));
+    return;
+  }
+  const spec = mockPlanFromPrompt(prompt);
+  const doc = renderFromSpec(spec);
+  fs.mkdirSync('dist', { recursive: true });
+  fs.writeFileSync(path.join('dist','index.html'), doc);
+  const summary = process.env.GITHUB_STEP_SUMMARY;
+  if (summary) fs.appendFileSync(summary, `\n**Deployed prompt**: ${prompt}\n`);
 }
 
 main();
