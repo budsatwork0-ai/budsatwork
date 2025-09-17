@@ -1,0 +1,11 @@
+{
+  "name": "budsatwork-pages",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/generate_site.js --prompt 'Landing page for \"Buds at Work\" with dark green, cream, mustard; hero with CTA; three service cards; FAQ; contact footer.'",
+    "build:from:issue": "node scripts/generate_site.js"
+  },
+  "engines": { "node": ">=18" }
+}
