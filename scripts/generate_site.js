@@ -313,7 +313,61 @@ function getInvolvedMain(){
   <div class="container">
     <h1>Get Involved</h1>
     <p>Volunteer, partner, or refer someone who could use a hand. Replace the placeholder below with your file’s HTML if you have it.</p>
-    <!-- REPLACE_ME_GET_INVOLVED_HTML -->
+
+    <div class="grid-3" style="margin-top:12px">
+      <div class="card">
+        <h3>Volunteer</h3>
+        <p>Help with jobs around the community: windows, lawns, tidy-ups.</p>
+        <a class="btn primary" href="#involved-form">Apply to volunteer</a>
+      </div>
+      <div class="card">
+        <h3>Partner</h3>
+        <p>Businesses & councils: sponsor days, refer work, or donate supplies.</p>
+        <a class="btn" href="#involved-form">Contact partnerships</a>
+      </div>
+      <div class="card">
+        <h3>Refer someone</h3>
+        <p>Know someone who could use a hand? Send us their details and we’ll follow up.</p>
+        <a class="btn" href="#involved-form">Make a referral</a>
+      </div>
+    </div>
+
+    <div class="card" id="involved-form" style="margin-top:16px">
+      <h3>Tell us how you’d like to help</h3>
+      <form id="gi-form" style="display:grid;gap:10px">
+        <div class="row small">
+          <select class="input" name="type" required>
+            <option value="">I’m interested in…</option>
+            <option>Volunteering</option>
+            <option>Partnership</option>
+            <option>Referral</option>
+          </select>
+          <input class="input" name="name" placeholder="Full name" required />
+        </div>
+        <div class="row small">
+          <input class="input" type="email" name="email" placeholder="Email" required />
+          <input class="input" name="phone" placeholder="Phone" />
+        </div>
+        <textarea class="input" name="notes" rows="4" placeholder="Tell us a little about yourself or the person you’re referring"></textarea>
+        <div class="row small" style="justify-content:flex-end">
+          <button class="btn">Send</button>
+        </div>
+      </form>
+      <div id="gi-success" class="muted" style="display:none;margin-top:8px">Thanks! We’ll be in touch soon.</div>
+    </div>
+
+    <script>
+      (() => {
+        const form = document.getElementById('gi-form');
+        form?.addEventListener('submit', (e) => {
+          e.preventDefault();
+          document.getElementById('gi-success').style.display = 'block';
+          form.reset();
+          window.scrollTo({ top: document.getElementById('gi-success').offsetTop - 100, behavior: 'smooth' });
+        });
+      })();
+    </script>
+
   </div>
 </section>`;
 }
