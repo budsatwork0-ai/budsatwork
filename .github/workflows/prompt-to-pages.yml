@@ -2,55 +2,41 @@ name: Prompt to Pages
 on:
   issue_comment:
     types: [created]
-  issues:
-    types: [opened, edited, labeled]
   workflow_dispatch:
     inputs:
       prompt:
         description: "Manual prompt"
         required: false
-  push:
-    paths:
-      - 'site.json'
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: "pages"
+  cancel-in-progress: true
 
 jobs:
   build-and-deploy:
+    if: github.event_name != 'issue_comment' || contains(github.event.comment.body, '/deploy')
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        with: { fetch-depth: 0 }
       - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Apply comment to site.json (if /deploy)
-        run: node scripts/comment_to_config.js
-
-      - name: Commit site.json changes (if any)
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "chore: apply prompt to site.json [skip ci]"
-          file_pattern: site.json
-
-      - name: Install deps (optional)
-        run: npm ci || true
-
+        with: { node-version: 20 }
       - name: Build site
-        run: npm run build:from:issue
-
+        run: node scripts/generate_site.js
+        env:
+          INPUT_PROMPT: ${{ github.event.inputs.prompt || '' }}
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
-
       - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
         id: deployment
+        uses: actions/deploy-pages@v4
