@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // CommonJS, no deps. Builds a small multi-page static site into /dist.
-const fs = require("node:fs");
-const path = require("node:path");
+import fs from "node:fs";
+import path from "node:path";
 
 // ---------- prompt plumbing (optional) ----------
 function getPrompt() {
