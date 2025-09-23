@@ -22,8 +22,7 @@
       node "$SCRIPT"
     fi
 
-    # 4) Fallback: if the generator didn't create dist/index.html,
-    #    copy a static page so Pages still has a homepage.
+    # 4) Fallback homepage
     if [ ! -f dist/index.html ]; then
       if [ -f index.html ]; then
         cp index.html dist/index.html
@@ -35,6 +34,14 @@
       fi
     fi
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+- name: Setup Pages
+  uses: actions/configure-pages@v5
+
+- name: Upload artifact
+  uses: actions/upload-pages-artifact@v3
+  with:
+    path: dist
+
+- name: Deploy to GitHub Pages
+  id: deployment
+  uses: actions/deploy-pages@v4
