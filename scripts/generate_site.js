@@ -1,179 +1,221 @@
-#!/usr/bin/env node
-// CommonJS, no deps. Builds a small multi-page static site into /dist.
+// scripts/generate_site.js
+// ESM static site generator for Buds at Work (simplified)
+// Builds: dist/index.html, about.html, services.html, shop.html, get-involved.html, cart.html
+
 import fs from "node:fs";
+import fsp from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-// ---------- prompt plumbing (optional) ----------
-function getPrompt() {
-  const a = process.argv.slice(2);
-  const i = a.indexOf("--prompt");
-  if (i !== -1) return a[i + 1];
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
 
-  try {
-    const p = process.env.GITHUB_EVENT_PATH;
-    if (!p || !fs.existsSync(p)) return "";
-    const evt = JSON.parse(fs.readFileSync(p, "utf8"));
-    const name = process.env.GITHUB_EVENT_NAME || "";
-    if (name === "issue_comment") {
-      const body = evt?.comment?.body || "";
-      if (/^\s*\/deploy\b/i.test(body)) return body.replace(/^\s*\/deploy\s*/i, "");
-    } else if (name === "workflow_dispatch") {
-      return (process.env.INPUT_PROMPT || "").trim();
-    }
-  } catch {}
-  return "";
+// ---------- helpers ----------
+async function ensureDir(p) {
+  await fsp.mkdir(p, { recursive: true });
+}
+async function writeFile(p, data) {
+  await ensureDir(path.dirname(p));
+  await fsp.writeFile(p, data, "utf8");
+  console.log("✓ wrote", path.relative(process.cwd(), p));
 }
 
-// ---------- design system ----------
-function heroNoiseSVG(){
-  return `<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='800'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncA type='table' tableValues='0 0 0.06 0.12 0.16 0.2 0.24 0.28 0.32 0.36 0.4'/></feComponentTransfer></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.3'/></svg>`;
+const dist = path.join(__dirname, "..", "dist");
+
+// ---------- site config ----------
+const SITE = {
+  brand: "Buds at Work",
+  email: "budsatwork@malucare.org",
+  phone: "0474 766 703",
+  palette: {
+    green: "#003A34",
+    cream: "#FAF0E6",
+    mustard: "#E7A637",
+    text: "#1a1a1a",
+    muted: "#6b7280",
+    white: "#ffffff",
+  },
+  pages: [
+    { title: "Home",             file: "index.html",        label: "Home" },
+    { title: "About Us",         file: "about.html",        label: "About Us" },
+    { title: "Services & Pricing", file: "services.html",   label: "Services & Pricing" },
+    { title: "Shop",             file: "shop.html",         label: "Shop" },
+    { title: "Get Involved",     file: "get-involved.html", label: "Get Involved" },
+    { title: "Cart",             file: "cart.html",         label: "Cart" },
+  ],
+};
+
+// ---------- routing helpers ----------
+function hrefFor(label) {
+  switch (label) {
+    case "Home": return "index.html";
+    case "About Us": return "about.html";
+    case "Services & Pricing": return "services.html";
+    case "Shop": return "shop.html";
+    case "Get Involved": return "get-involved.html";
+    case "Cart": return "cart.html";
+    default: return "#";
+  }
 }
 
-function baseCSS({ primary, accent, paper }) {
+// ---------- layout ----------
+function baseCSS() {
+  const { green, cream, mustard, text, muted, white } = SITE.palette;
   return `
 :root{
-  --primary:${primary}; --accent:${accent}; --paper:${paper};
-  --ink:#18221b; --muted:#5a6a61; --radius:14px; --shadow:0 10px 30px rgba(0,0,0,.08)
+  --green:${green};
+  --cream:${cream};
+  --mustard:${mustard};
+  --text:${text};
+  --muted:${muted};
+  --white:${white};
 }
-*{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial,sans-serif;color:var(--ink);background:var(--paper)}
-a{color:inherit}
-.container{max-width:1160px;margin:0 auto;padding:12px 20px}
 
-/* --- Header --- */
-.site-header{position:sticky;top:0;background:#fff;border-bottom:1px solid rgba(0,0,0,.08);z-index:50}
-.navbar{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
-.brand{display:inline-flex;align-items:center;gap:10px;text-decoration:none}
-.logo-icon{width:20px;height:20px;border-radius:6px;background:var(--primary);position:relative;display:inline-block}
-.logo-icon::after{content:"";position:absolute;inset:4px;border-radius:4px;background:var(--accent)}
-.logo-text{font-weight:700;letter-spacing:.2px}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+  color:var(--text);
+  background:var(--cream);
+}
 
-.nav-center{display:flex;justify-content:center;gap:20px}
-.nav-center a{padding:10px 6px;text-decoration:none;border-radius:8px}
-.nav-center a:hover{background:rgba(0,0,0,.04)}
-.nav-right{display:flex;gap:10px;align-items:center}
-.nav-icon{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;border:1px solid rgba(0,0,0,.06);background:#fff;cursor:pointer;text-decoration:none}
-.nav-icon:hover{background:#f4f6f5}
-.nav-icon svg{width:18px;height:18px}
-.hamburger{display:none;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:10px;padding:10px;cursor:pointer}
-.hamburger:hover{background:#f4f6f5}
+.container{max-width:1100px;margin:0 auto;padding:0 16px}
+.muted{color:var(--muted)}
 
-/* Mobile menu */
-.mobile-menu{display:none}
-.mobile-menu.open{display:block}
-.mobile-menu a{display:block;padding:12px 16px;border-top:1px solid rgba(0,0,0,.06);text-decoration:none}
-.mobile-menu a:hover{background:#f6f8f7}
+/* Header */
+.site-header{
+  background:var(--green);
+  color:var(--cream);
+  position:sticky;top:0;z-index:20;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.header-inner{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  height:64px;
+}
+.brand{
+  display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--cream);
+  font-weight:700;letter-spacing:.2px;
+}
+.logo-icon{
+  width:28px;height:28px;border-radius:7px;background:var(--mustard);
+  display:inline-block;flex-shrink:0;
+}
 
-/* Account dropdown */
-details.account{position:relative}
-details.account[open] > summary{background:#eef3ef}
-summary.account-toggle{list-style:none;display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;border:1px solid rgba(0,0,0,.06);cursor:pointer}
-summary.account-toggle::-webkit-details-marker{display:none}
-.account-menu{position:absolute;top:calc(100% + 8px);right:0;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:12px;box-shadow:var(--shadow);min-width:220px;overflow:hidden}
-.account-menu a,.account-menu button{display:block;width:100%;text-align:left;padding:10px 12px;background:#fff;border:0;cursor:pointer}
-.account-menu a:hover,.account-menu button:hover{background:#f5f7f6}
+.nav{
+  display:flex;align-items:center;gap:18px;
+}
+.nav a{
+  color:var(--cream);text-decoration:none;font-weight:500;opacity:.95;
+}
+.nav a:hover{opacity:1;text-decoration:underline}
 
-/* --- Sections --- */
-.hero{background:linear-gradient(135deg, rgba(15,61,46,.92), rgba(15,61,46,.65)), url('data:image/svg+xml;utf8,${encodeURIComponent(heroNoiseSVG())}') center/cover no-repeat;color:#fff}
-.hero .container{padding:84px 20px}
-.hero h1{margin:0 0 8px;font-size:44px;letter-spacing:-.01em}
-.hero p{opacity:.92;max-width:760px}
-.actions{display:flex;gap:12px;margin-top:16px}
-.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 16px;border:1px solid rgba(0,0,0,.08);border-radius:12px;background:#fff;cursor:pointer;text-decoration:none}
-.btn.primary{background:var(--accent);color:#111;border:none}
-.btn.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.5)}
-.section{padding:54px 0}
-.section.alt{background:rgba(0,0,0,.03)}
-.grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
-.card{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:var(--radius);padding:18px;box-shadow:0 1px 0 rgba(0,0,0,.02)}
+/* Book Now button */
+.btn-book{
+  background:var(--mustard); color:#1b1b1b; text-decoration:none;
+  padding:10px 14px;border-radius:10px;font-weight:700;display:inline-flex;align-items:center;gap:8px;
+  border:1px solid rgba(0,0,0,.05);
+}
+.btn-book:active{transform:translateY(1px)}
+.btn-book .dot{width:8px;height:8px;border-radius:999px;background:#1b1b1b;opacity:.4}
+
+/* Icons group */
+.icons{display:flex;align-items:center;gap:14px}
+.icon-btn{
+  width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.08);
+  display:inline-flex;align-items:center;justify-content:center;color:var(--cream);
+  text-decoration:none;border:1px solid rgba(255,255,255,.08)
+}
+.icon-btn:hover{background:rgba(255,255,255,.12)}
+
+/* Mobile */
+.hamburger{display:none}
+.mobile-menu{
+  display:none;background:var(--green);padding:10px 0;border-top:1px solid rgba(255,255,255,.1)
+}
+.mobile-menu a{display:block;padding:12px 16px;color:var(--cream);text-decoration:none}
+.mobile-menu .mobile-book{padding:12px 16px}
+
+@media (max-width:860px) {
+  .nav{display:none}
+  .hamburger{display:inline-flex}
+  .icons .btn-book{display:none}
+}
+
+/* Sections */
+.hero{
+  padding:80px 0;background:linear-gradient(0deg, rgba(0,0,0,.02), rgba(0,0,0,0));
+}
+h1{font-size:36px;margin:0 0 10px}
+h2{font-size:28px;margin:24px 0 12px}
+p{line-height:1.6}
+
+/* Cards */
+.grid{display:grid;gap:14px}
+.grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.grid.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (max-width:860px){ .grid.cols-3{grid-template-columns:1fr} .grid.cols-2{grid-template-columns:1fr} }
+
+.card{
+  background:var(--white);border:1px solid rgba(0,0,0,.07);border-radius:14px;padding:16px;
+  box-shadow:0 1px 0 rgba(0,0,0,.03);
+}
 .card h3{margin:0 0 6px}
-.card .price{margin-top:10px;font-weight:600;color:var(--primary)}
+.card .sub{color:var(--muted);font-size:14px;margin-bottom:10px}
+.card .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.card .chip{
+  font-size:12px;padding:4px 8px;border-radius:999px;background:#f3f4f6;border:1px solid #e5e7eb;
+}
 
 /* Footer */
-.site-footer{background:#0f3d2e;color:#fff}
-.site-footer .container{padding:24px 20px}
-.site-footer .muted{opacity:.85}
-
-/* Modal (Sign in) */
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:60}
-.modal.hidden{display:none}
-.modal-card{width:min(560px, 92vw);background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
-.modal-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid rgba(0,0,0,.06)}
-.modal-tabs{display:flex;gap:8px;padding:10px 12px;border-bottom:1px solid rgba(0,0,0,.06)}
-.modal-tabs button{padding:8px 12px;border-radius:10px;border:1px solid transparent;background:#f4f6f5;cursor:pointer}
-.modal-tabs button.active{background:#e9efea;border-color:#d9e5dc}
-.modal-body{padding:12px}
-.modal-body form{display:grid;gap:10px}
-.input{padding:12px;border:1px solid #e1e6e3;border-radius:10px}
-.oauth{display:flex;align-items:center;gap:8px;justify-content:center;padding:10px 12px;border:1px solid #e1e6e3;border-radius:12px;background:#fff;cursor:pointer}
-.or{display:flex;align-items:center;gap:10px;justify-content:center;color:var(--muted)}
-.or::before,.or::after{content:"";height:1px;background:#e1e6e3;flex:1}
-
-/* Responsive header rules */
-@media (max-width: 900px){
-  .logo-text{display:none}
-  .nav-center{display:none}
-  .hamburger{display:inline-flex}
-  .navbar{grid-template-columns:auto 1fr auto auto}
+.site-footer{
+  margin-top:60px;padding:24px 0;background:#0e1e1c;color:var(--cream)
+}
+.footer-links{display:flex;gap:16px;flex-wrap:wrap}
+.footer-links a{color:var(--cream);opacity:.9;text-decoration:none}
+.footer-links a:hover{opacity:1;text-decoration:underline}
+`.trim();
 }
 
-/* Work grid */
-.work-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
-.work{aspect-ratio:4/3;border-radius:var(--radius);border:1px solid rgba(0,0,0,.06);background:linear-gradient(135deg, rgba(0,0,0,.06), rgba(0,0,0,.02))}
-@media (max-width: 900px){ .grid-3,.work-grid{grid-template-columns:1fr} }
-`;
-}
-
-// ---------- components ----------
-function headerHTML(active = "Home"){
-  const is = (t) => `href="${hrefFor(t)}" class="${active===t?'on':''}"`;
+function headerHTML() {
   return `
 <header class="site-header">
-  <div class="container navbar">
-    <a class="brand" href="${hrefFor('Home')}" aria-label="Buds at Work Home">
+  <div class="container header-inner">
+    <a class="brand" href="${hrefFor('Home')}">
       <span class="logo-icon" aria-hidden="true"></span>
-      <span class="logo-text">Buds at Work</span>
+      <span>${SITE.brand}</span>
     </a>
 
-    <nav class="nav-center" aria-label="primary">
-      <a ${is('Home')}>Home</a>
-      <a ${is('About Us')}>About Us</a>
-      <a ${is('Services & Pricing')}>Services & Pricing</a>
-      <a ${is('Shop')}>Shop</a>
-      <a ${is('Get Involved')}>Get Involved</a>
+    <nav class="nav" aria-label="Primary">
+      <a href="${hrefFor('Home')}">Home</a>
+      <a href="${hrefFor('About Us')}">About Us</a>
+      <a href="${hrefFor('Services & Pricing')}">Services & Pricing</a>
+      <a href="${hrefFor('Get Involved')}">Get Involved</a>
+      <a href="${hrefFor('Shop')}">Shop</a>
     </nav>
 
-    <div class="nav-right">
-      <a class="nav-icon" href="${hrefFor('Cart')}" aria-label="Cart">
-        ${iconCart()} <span>Cart</span>
+    <div class="icons">
+      <a class="btn-book" href="${hrefFor('Services & Pricing')}#quote">
+        <span class="dot" aria-hidden="true"></span>
+        Book now
       </a>
-
-      <button class="nav-icon sign-in-btn" aria-haspopup="dialog">
-        ${iconUser()} <span class="sign-in-label">Sign in</span>
-      </button>
-
-      <details class="account hidden">
-        <summary class="account-toggle">${iconUser()} <span>Account</span></summary>
-        <div class="account-menu" role="menu">
-          <a role="menuitem" href="${hrefFor('Orders')}">Orders</a>
-          <a role="menuitem" href="${hrefFor('Bookings')}">Bookings</a>
-          <a role="menuitem" href="${hrefFor('Payments')}">Payment Methods</a>
-          <button type="button" class="logout" role="menuitem">Logout</button>
-        </div>
-      </details>
-
-      <button class="hamburger" aria-label="Open menu" aria-expanded="false">${iconHamburger()}</button>
+      <a class="icon-btn" href="${hrefFor('Cart')}" aria-label="Cart">🛒</a>
+      <a class="icon-btn" href="#" aria-label="Profile">👤</a>
+      <button class="icon-btn hamburger" aria-expanded="false" aria-label="Open menu">☰</button>
     </div>
   </div>
-
-  <div class="mobile-menu" hidden>
+  <div class="mobile-menu" id="mobileMenu">
     <a href="${hrefFor('Home')}">Home</a>
     <a href="${hrefFor('About Us')}">About Us</a>
     <a href="${hrefFor('Services & Pricing')}">Services & Pricing</a>
-    <a href="${hrefFor('Shop')}">Shop</a>
     <a href="${hrefFor('Get Involved')}">Get Involved</a>
+    <a href="${hrefFor('Shop')}">Shop</a>
+    <div class="mobile-book">
+      <a class="btn-book" href="${hrefFor('Services & Pricing')}#quote"><span class="dot"></span> Book now</a>
+    </div>
   </div>
 </header>
-  `;
+  `.trim();
 }
 
 function footerHTML(){
@@ -182,457 +224,217 @@ function footerHTML(){
   <div class="container">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
       <span class="logo-icon" aria-hidden="true"></span>
-      <strong>Buds at Work</strong>
+      <strong>${SITE.brand}</strong>
     </div>
-    <p class="muted">Email: budsatwork@malucare.org · Phone: 0474 766 703</p>
+    <p class="muted">Email: ${SITE.email} · Phone: ${SITE.phone}</p>
+    <div class="footer-links" style="margin-top:8px">
+      <a href="${hrefFor('Home')}">Home</a>
+      <a href="${hrefFor('About Us')}">About Us</a>
+      <a href="${hrefFor('Services & Pricing')}">Services & Pricing</a>
+      <a href="${hrefFor('Get Involved')}">Get Involved</a>
+      <a href="${hrefFor('Shop')}">Shop</a>
+    </div>
   </div>
-</footer>`;
+</footer>
+  `.trim();
 }
 
-function iconCart(){ return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="9" cy="20" r="1"/><circle cx="16" cy="20" r="1"/><path d="M1 2h3l2.6 12.4a2 2 0 0 0 2 1.6h8.7a2 2 0 0 0 2-1.6L22 7H6"/></svg>`; }
-function iconUser(){ return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>`; }
-function iconHamburger(){ return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>`; }
-
-function signInModalHTML(){
+function baseDoc(title, h1, mainHTML){
   return `
-<div class="modal hidden" id="auth-modal" role="dialog" aria-modal="true" aria-label="Sign in">
-  <div class="modal-card">
-    <div class="modal-head">
-      <strong>Welcome</strong>
-      <button class="nav-icon close-auth" aria-label="Close">${iconHamburger().replace('18h18','6h6')}</button>
-    </div>
-    <div class="modal-tabs">
-      <button class="tab-btn active" data-tab="signin">Sign in</button>
-      <button class="tab-btn" data-tab="create">Create account</button>
-    </div>
-    <div class="modal-body">
-      <div class="pane signin">
-        <form id="magic-link-form">
-          <input class="input" type="email" name="email" placeholder="Email for magic link" required />
-          <button class="btn primary" type="submit">Send magic link</button>
-        </form>
-        <div class="or">or</div>
-        <button class="oauth" type="button">Continue with Google</button>
-        <button class="oauth" type="button">Continue with Apple</button>
-        <details style="margin-top:10px">
-          <summary>Use email & password</summary>
-          <form id="password-form" style="margin-top:8px">
-            <input class="input" type="email" name="email" placeholder="Email" required />
-            <input class="input" type="password" name="password" placeholder="Password" required />
-            <button class="btn" type="submit">Sign in</button>
-          </form>
-        </details>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${title} • ${SITE.brand}</title>
+  <meta name="description" content="${SITE.brand} – Services that shine. Busy? Leave it to Buds.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' rx='12' fill='%23E7A637'/%3E%3Ctext x='50%25' y='54%25' font-size='36' text-anchor='middle'%3E%F0%9F%8C%B1%3C/text%3E%3C/svg%3E">
+  <style>${baseCSS()}</style>
+</head>
+<body>
+  ${headerHTML()}
+  <main>
+    <section class="hero">
+      <div class="container">
+        <h1>${h1}</h1>
+        <p class="muted">Busy? Leave it to Buds — inclusive work, real-world jobs, and a community that backs each other.</p>
       </div>
-      <div class="pane create" hidden>
-        <form id="create-form">
-          <input class="input" name="name" placeholder="Full name" required />
-          <input class="input" type="email" name="email" placeholder="Email" required />
-          <input class="input" type="password" name="password" placeholder="Password" required />
-          <button class="btn primary" type="submit">Create account</button>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>`;
+    </section>
+    <div class="container">${mainHTML}</div>
+  </main>
+  ${footerHTML()}
+  <script>
+    // mobile menu toggle
+    const btn = document.querySelector('.hamburger');
+    const menu = document.getElementById('mobileMenu');
+    if (btn && menu) {
+      btn.addEventListener('click', () => {
+        const open = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', String(!open));
+        menu.style.display = open ? 'none' : 'block';
+      });
+    }
+  </script>
+</body>
+</html>
+  `.trim();
 }
 
-// ---------- pages ----------
-function homeMain() {
+// ---------- page content ----------
+function homeMain(){
   return `
-<section class="hero">
-  <div class="container">
-    <h1>Work that empowers. <br class="hidden md"/>Services that shine ✨</h1>
-    <p>Two mates, one mission: inclusive, reliable help across cleaning, lawn & garden, windows, and dump runs — done right, by people who care.</p>
-    <div class="actions">
-      <a class="btn primary" href="#quote">Start a quote</a>
-      <a class="btn ghost" href="#services">See services & pricing</a>
-    </div>
-    <p class="muted" style="margin-top:8px">★ 4.9/5 from locals · NDIS-friendly · Fully insured</p>
-  </div>
-</section>
-
-<div class="container"><div style="height:12px;border-radius:999px;background:#DDCDA2;margin-top:12px"></div></div>
-
-<section id="services" class="section">
-  <div class="container">
-    <h2>Our services — starting prices</h2>
-    <p class="muted">Add services to your <strong>quote</strong>; we’ll confirm final price after a quick chat.</p>
-
-    <div class="grid-3" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:14px">
-      <article class="card" style="display:flex;align-items:stretch;padding:0;overflow:hidden">
-        <div style="width:8px;background:#003A34"></div>
-        <div style="flex:1;padding:16px">
-          <h3>Car Cleaning & Detailing</h3>
-          <p>Professional interior & exterior care</p>
-        </div>
-        <div style="width:240px;background:#003A34;color:#FAF0D9;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:8px">
-          <span class="btn" style="background:#E7A637;color:#003A34;border:none;padding:6px 10px">From $80</span>
-          <a class="btn" href="#quote">Add to quote</a>
-        </div>
-      </article>
-
-      <article class="card" style="display:flex;align-items:stretch;padding:0;overflow:hidden">
-        <div style="width:8px;background:#003A34"></div>
-        <div style="flex:1;padding:16px">
-          <h3>Home Cleaning</h3>
-          <p>Reliable, thorough home cleaning</p>
-        </div>
-        <div style="width:240px;background:#003A34;color:#FAF0D9;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:8px">
-          <span class="btn" style="background:#E7A637;color:#003A34;border:none;padding:6px 10px">From $50/hr</span>
-          <a class="btn" href="#quote">Add to quote</a>
-        </div>
-      </article>
-
-      <article class="card" style="display:flex;align-items:stretch;padding:0;overflow:hidden">
-        <div style="width:8px;background:#003A34"></div>
-        <div style="flex:1;padding:16px">
-          <h3>Dump Runs</h3>
-          <p>Rubbish & green waste removal</p>
-        </div>
-        <div style="width:240px;background:#003A34;color:#FAF0D9;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:8px">
-          <span class="btn" style="background:#E7A637;color:#003A34;border:none;padding:6px 10px">From $80/m³</span>
-          <a class="btn" href="#quote">Add to quote</a>
-        </div>
-      </article>
-
-      <article class="card" style="display:flex;align-items:stretch;padding:0;overflow:hidden">
-        <div style="width:8px;background:#003A34"></div>
-        <div style="flex:1;padding:16px">
-          <h3>Lawn & Garden</h3>
-          <p>Mowing, edging, hedges, tidy-ups</p>
-        </div>
-        <div style="width:240px;background:#003A34;color:#FAF0D9;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:8px">
-          <span class="btn" style="background:#E7A637;color:#003A34;border:none;padding:6px 10px">From $50</span>
-          <a class="btn" href="#quote">Add to quote</a>
-        </div>
-      </article>
-    </div>
-  </div>
-</section>
-
-<section class="section alt">
-  <div class="container">
-    <h2>Get a quote in minutes</h2>
-    <div class="grid-3" style="gap:16px">
-      <div class="card"><strong>1.</strong> Pick a service</div>
-      <div class="card"><strong>2.</strong> Tell us size & timing</div>
-      <div class="card"><strong>3.</strong> Get your quote</div>
-    </div>
-    <div class="card" style="margin-top:12px">
-      <details><summary>Do you service my area?</summary><div>Greater Brisbane, Ipswich & surrounds.</div></details>
-      <details><summary>NDIS participants?</summary><div>Yes. We can provide invoices & notes.</div></details>
-    </div>
-  </div>
-</section>
-
-<section class="section">
-  <div class="container">
+<div class="grid cols-3">
+  <div class="card">
+    <h3>Car Cleaning & Detailing</h3>
+    <div class="sub">From $80</div>
+    <p>Professional interior & exterior cleaning that makes your pride and joy sparkle.</p>
     <div class="row">
-      <div>
-        <h2>Shop — gear we use & love</h2>
-        <p class="muted">Purchase merch & work gear directly.</p>
-      </div>
-      <a class="btn" href="shop.html">View all</a>
-    </div>
-    <div class="grid-3" style="gap:16px;margin-top:12px">
-      <div class="card"><div class="work"></div><h3>BAW Logo Tee</h3><p>Soft cotton, relaxed fit</p><div class="row small"><span class="price">$35</span><a class="btn" href="#quote">Add to cart</a></div></div>
-      <div class="card"><div class="work"></div><h3>Mustard Work Cap</h3><p>Low profile, adjustable</p><div class="row small"><span class="price">$29</span><a class="btn" href="#quote">Add to cart</a></div></div>
-      <div class="card"><div class="work"></div><h3>Garden Gloves</h3><p>Grip palms, washable</p><div class="row small"><span class="price">$18</span><a class="btn" href="#quote">Add to cart</a></div></div>
+      <span class="chip">Add to quote</span>
+      <a class="chip" href="services.html#quote">Book now</a>
     </div>
   </div>
-</section>
-
-<section class="section">
-  <div class="container">
-    <h2>Community impact in action</h2>
-    <div class="grid-3" style="gap:16px">
-      <div class="card"><div class="muted">Hours of support delivered (monthly)</div><div style="font-size:40px;font-weight:800">128</div></div>
-      <div class="card"><div class="muted">Windows cleaned (YTD)</div><div style="font-size:40px;font-weight:800">2,340</div></div>
-      <div class="card"><div class="muted">Lawns made tidy (YTD)</div><div style="font-size:40px;font-weight:800">1,176</div></div>
-    </div>
-    <blockquote class="card" style="margin-top:12px;background:#003A34;color:#FAF0D9">“Buds at Work are legends — punctual, thorough, and kind.” — <em>Local customer</em></blockquote>
-  </div>
-</section>
-
-<section class="section">
-  <div class="container">
-    <h2>Train. Mentor. Employ.</h2>
-    <p class="muted">We partner with RTOs, businesses, and retirees to create low-interruption study pathways and real-world placements.</p>
-    <div class="grid-3" style="gap:16px;margin-top:12px">
-      <div class="card"><h3>RTOs</h3><p>Subsidised training pathways; simple referral process.</p><a class="btn" href="#contact">Partner with us</a></div>
-      <div class="card"><h3>Businesses</h3><p>Host placements; hire job-ready trainees.</p><a class="btn" href="#contact">Offer placements</a></div>
-      <div class="card"><h3>Mentors/Retirees</h3><p>Share trade skills and guide learners.</p><a class="btn" href="#contact">Register interest</a></div>
+  <div class="card">
+    <h3>Home Cleaning</h3>
+    <div class="sub">From $50/hr</div>
+    <p>Reliable, thorough home cleaning. Flexible schedules and friendly service.</p>
+    <div class="row">
+      <span class="chip">Add to quote</span>
+      <a class="chip" href="services.html#quote">Book now</a>
     </div>
   </div>
-</section>
-
-<section class="section" id="quote">
-  <div class="container row">
-    <div>
-      <h2>Where we work</h2>
-      <p class="muted">Flagstone · Greenbank · Jimboomba · Ipswich · Brisbane</p>
-    </div>
-    <div class="card">
-      <p>budsatwork@malucare.org · 0474 766 703</p>
-      <div class="row small" style="margin-top:8px">
-        <a class="btn" href="#booking">Request a quote</a>
-        <a class="btn ghost" href="#contact">Message us</a>
-      </div>
+  <div class="card">
+    <h3>Dump Runs</h3>
+    <div class="sub">From $80/m³</div>
+    <p>Rubbish & green waste removal done right—fast and affordable.</p>
+    <div class="row">
+      <span class="chip">Add to quote</span>
+      <a class="chip" href="services.html#quote">Book now</a>
     </div>
   </div>
-</section>
-`;
+</div>
+  `.trim();
 }
 
 function aboutMain(){
   return `
-<section class="section">
-  <div class="container">
-    <h1>About Us</h1>
-    <p>We’re a local team focused on friendly service, fair pricing, and community impact.</p>
-  </div>
-</section>`;
+<div class="card">
+  <h3>Two mates, one mission</h3>
+  <p>We’re building real opportunities through real jobs. Our work empowers, and our services shine.</p>
+  <p class="muted">We’re Brisbane-based and proud to support our local community.</p>
+</div>
+  `.trim();
 }
 
 function servicesMain(){
   return `
-<section class="section">
-  <div class="container">
-    <h1>Services & Pricing</h1>
-    <div class="grid-3">
-      <div class="card"><h3>Window Cleaning</h3><p>Interior & exterior, frames & tracks.</p><div class="price">from $80</div></div>
-      <div class="card"><h3>Lawn & Garden</h3><p>Mowing, edging, hedges, tidy-ups.</p><div class="price">from $50/hr</div></div>
-      <div class="card"><h3>Dump Runs</h3><p>Rubbish & green waste removal.</p><div class="price">from $80/m³</div></div>
-    </div>
+<div class="grid cols-2">
+  <div class="card">
+    <h3>Services & Pricing</h3>
+    <p class="muted">Pricing is indicative only. When you “Book now”, we collect details to generate a <strong>quote</strong> — not a final charge.</p>
+    <ul>
+      <li><strong>Car Cleaning & Detailing</strong> — from $80</li>
+      <li><strong>Home Cleaning</strong> — from $50/hr</li>
+      <li><strong>Dump Runs</strong> — from $80/m³</li>
+      <li><strong>Lawn & Garden</strong> — from $50</li>
+      <li><strong>Window Cleaning</strong> — contact for quote</li>
+    </ul>
   </div>
-</section>`;
+  <div class="card" id="quote">
+    <h3>Request a Quote</h3>
+    <p class="muted">Tell us about the job — we’ll text and email you a quote.</p>
+    <form onsubmit="event.preventDefault(); alert('Thanks! We\\'ll be in touch with your quote.');">
+      <div class="row">
+        <input aria-label="Preferred date" placeholder="Preferred date" style="flex:1;padding:10px;border-radius:10px;border:1px solid #e5e7eb">
+        <input aria-label="Preferred time" placeholder="Preferred time" style="flex:1;padding:10px;border-radius:10px;border:1px solid #e5e7eb">
+      </div>
+      <div style="height:10px"></div>
+      <input aria-label="Property address" placeholder="Property address" style="width:100%;padding:10px;border-radius:10px;border:1px solid #e5e7eb">
+      <div style="height:10px"></div>
+      <textarea aria-label="Property details" placeholder="Property details (size, access, notes)" rows="4" style="width:100%;padding:10px;border-radius:10px;border:1px solid #e5e7eb"></textarea>
+      <div style="height:10px"></div>
+      <div class="row">
+        <input aria-label="Email" placeholder="Email for confirmation" style="flex:1;padding:10px;border-radius:10px;border:1px solid #e5e7eb">
+        <input aria-label="Mobile" placeholder="Mobile (for SMS updates)" style="flex:1;padding:10px;border-radius:10px;border:1px solid #e5e7eb">
+      </div>
+      <div style="height:14px"></div>
+      <button class="btn-book" type="submit"><span class="dot"></span> Submit for quote</button>
+    </form>
+  </div>
+</div>
+  `.trim();
 }
 
 function shopMain(){
   return `
-<section class="section">
-  <div class="container">
-    <h1>Shop</h1>
-    <p class="muted">Products coming soon.</p>
+<div class="grid cols-3">
+  <div class="card">
+    <h3>BAW Tee</h3>
+    <p class="sub">Streetwear drop 01</p>
+    <div class="row"><span class="chip">Add to cart</span><span class="chip">Details</span></div>
   </div>
-</section>`;
+  <div class="card">
+    <h3>Sticker Pack</h3>
+    <p class="sub">The Buds Were Here</p>
+    <div class="row"><span class="chip">Add to cart</span><span class="chip">Details</span></div>
+  </div>
+  <div class="card">
+    <h3>Dad Cap</h3>
+    <p class="sub">Clean & subtle</p>
+    <div class="row"><span class="chip">Add to cart</span><span class="chip">Details</span></div>
+  </div>
+</div>
+<p class="muted">Shop purchases are immediate checkout. Service bookings go to a quote.</p>
+  `.trim();
 }
 
 function getInvolvedMain(){
   return `
-<section class="section">
-  <div class="container">
-    <h1>Get Involved</h1>
-    <p>Volunteer, partner, or refer someone who could use a hand. Replace the placeholder below with your file’s HTML if you have it.</p>
-
-    <div class="grid-3" style="margin-top:12px">
-      <div class="card">
-        <h3>Volunteer</h3>
-        <p>Help with jobs around the community: windows, lawns, tidy-ups.</p>
-        <a class="btn primary" href="#involved-form">Apply to volunteer</a>
-      </div>
-      <div class="card">
-        <h3>Partner</h3>
-        <p>Businesses & councils: sponsor days, refer work, or donate supplies.</p>
-        <a class="btn" href="#involved-form">Contact partnerships</a>
-      </div>
-      <div class="card">
-        <h3>Refer someone</h3>
-        <p>Know someone who could use a hand? Send us their details and we’ll follow up.</p>
-        <a class="btn" href="#involved-form">Make a referral</a>
-      </div>
-    </div>
-
-    <div class="card" id="involved-form" style="margin-top:16px">
-      <h3>Tell us how you’d like to help</h3>
-      <form id="gi-form" style="display:grid;gap:10px">
-        <div class="row small">
-          <select class="input" name="type" required>
-            <option value="">I’m interested in…</option>
-            <option>Volunteering</option>
-            <option>Partnership</option>
-            <option>Referral</option>
-          </select>
-          <input class="input" name="name" placeholder="Full name" required />
-        </div>
-        <div class="row small">
-          <input class="input" type="email" name="email" placeholder="Email" required />
-          <input class="input" name="phone" placeholder="Phone" />
-        </div>
-        <textarea class="input" name="notes" rows="4" placeholder="Tell us a little about yourself or the person you’re referring"></textarea>
-        <div class="row small" style="justify-content:flex-end">
-          <button class="btn">Send</button>
-        </div>
-      </form>
-      <div id="gi-success" class="muted" style="display:none;margin-top:8px">Thanks! We’ll be in touch soon.</div>
-    </div>
-
-    <script>
-      (() => {
-        const form = document.getElementById('gi-form');
-        form?.addEventListener('submit', (e) => {
-          e.preventDefault();
-          document.getElementById('gi-success').style.display = 'block';
-          form.reset();
-          window.scrollTo({ top: document.getElementById('gi-success').offsetTop - 100, behavior: 'smooth' });
-        });
-      })();
-    </script>
-
+<div class="grid cols-2">
+  <div class="card">
+    <h3>Partner / Host</h3>
+    <p>RTOs, local trades, and community groups — let’s build inclusive work pathways.</p>
+    <div class="row"><span class="chip">Expression of interest</span></div>
   </div>
-</section>`;
+  <div class="card">
+    <h3>Sponsor Impact</h3>
+    <p class="muted">Simple, transparent outcomes. Monthly onboarding goals. Real stories.</p>
+    <div class="row"><span class="chip">See impact</span><span class="chip">Donate</span></div>
+  </div>
+</div>
+  `.trim();
 }
 
 function cartMain(){
   return `
-<section class="section">
-  <div class="container">
-    <h1>Your Cart</h1>
-    <p class="muted">Your cart is empty.</p>
+<div class="card">
+  <h3>Your Cart</h3>
+  <p class="muted">Cart is for shop items only. Service bookings are quoted via the request form.</p>
+  <div class="row">
+    <span class="chip">Checkout</span>
+    <a class="chip" href="shop.html">Back to shop</a>
   </div>
-</section>`;
-}
-
-// ---------- JS shared on all pages ----------
-function appJS(active){
-  return `(() => {
-  // Auth state (demo): store email in localStorage to simulate sign-in
-  const authEmail = localStorage.getItem('buds_auth_email') || '';
-  const signBtn = document.querySelector('.sign-in-btn');
-  const account = document.querySelector('details.account');
-  const signLabel = document.querySelector('.sign-in-label');
-  function setAuthed(email){
-    if(email){
-      localStorage.setItem('buds_auth_email', email);
-      signBtn?.classList.add('hidden');
-      account?.classList.remove('hidden');
-    } else {
-      localStorage.removeItem('buds_auth_email');
-      account?.classList.add('hidden');
-      signBtn?.classList.remove('hidden');
-      signLabel && (signLabel.textContent = 'Sign in');
-    }
-  }
-  if(authEmail) setAuthed(authEmail);
-
-  // Account dropdown actions
-  document.querySelector('.logout')?.addEventListener('click', ()=>{ setAuthed(''); location.reload(); });
-
-  // Mobile menu
-  const ham = document.querySelector('.hamburger');
-  const menu = document.querySelector('.mobile-menu');
-  ham?.addEventListener('click', ()=>{
-    const open = menu?.hasAttribute('hidden') ? false : true;
-    if(open){ menu.setAttribute('hidden',''); ham.setAttribute('aria-expanded','false'); menu.classList.remove('open'); }
-    else { menu.removeAttribute('hidden'); ham.setAttribute('aria-expanded','true'); menu.classList.add('open'); }
-  });
-  window.addEventListener('resize', ()=>{ if(window.innerWidth>900){ menu?.setAttribute('hidden',''); ham?.setAttribute('aria-expanded','false'); menu?.classList.remove('open'); } });
-
-  // Sign in modal
-  const modal = document.getElementById('auth-modal');
-  const openAuth = () => modal?.classList.remove('hidden');
-  const closeAuth = () => modal?.classList.add('hidden');
-  signBtn?.addEventListener('click', openAuth);
-  modal?.addEventListener('click', (e)=>{ if(e.target===modal) closeAuth(); });
-  document.querySelector('.close-auth')?.addEventListener('click', closeAuth);
-
-  // Tabs
-  document.querySelectorAll('.tab-btn').forEach(b=>{
-    b.addEventListener('click', ()=>{
-      document.querySelectorAll('.tab-btn').forEach(t=>t.classList.remove('active'));
-      b.classList.add('active');
-      const tab = b.getAttribute('data-tab');
-      document.querySelector('.pane.signin')?.toggleAttribute('hidden', tab!=='signin');
-      document.querySelector('.pane.create')?.toggleAttribute('hidden', tab!=='create');
-    });
-  });
-
-  // Magic link (demo)
-  document.getElementById('magic-link-form')?.addEventListener('submit', (e)=>{
-    e.preventDefault();
-    const email = new FormData(e.target).get('email');
-    alert('Magic link sent to '+email+'. (Demo) You are now signed in.');
-    setAuthed(String(email||''));
-    closeAuth();
-  });
-
-  // Password fallback (demo)
-  document.getElementById('password-form')?.addEventListener('submit', (e)=>{
-    e.preventDefault();
-    const email = new FormData(e.target).get('email');
-    setAuthed(String(email||''));
-    closeAuth();
-  });
-
-  // Create account (demo)
-  document.getElementById('create-form')?.addEventListener('submit', (e)=>{
-    e.preventDefault();
-    const email = new FormData(e.target).get('email');
-    alert('Account created for '+email+'.');
-    setAuthed(String(email||''));
-    closeAuth();
-  });
-
-  // Active link underline
-  document.querySelectorAll('.nav-center a').forEach(a=>{
-    if(a.classList.contains('on')) a.style.textDecoration='underline';
-  });
-})();`
-}
-
-// ---------- templating ----------
-function baseDoc(title, active, mainHTML){
-  const css = baseCSS({ primary: "#0f3d2e", accent: "#c9a227", paper: "#fffef8" });
-  const header = headerHTML(active);
-  const modal = signInModalHTML();
-  const footer = footerHTML();
-  const js = appJS(active);
-  return `<!doctype html><html lang="en"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>${title} — Buds at Work</title><meta name="theme-color" content="#0f3d2e"/>
-<style>${css}</style>
-</head><body>
-${header}
-${mainHTML}
-${footer}
-${modal}
-<script>${js}<\/script>
-</body></html>`;
-}
-
-function hrefFor(name){
-  switch(name){
-    case "Home": return "index.html";
-    case "About Us": return "about.html";
-    case "Services & Pricing": return "services.html";
-    case "Shop": return "shop.html";
-    case "Get Involved": return "get-involved.html";
-    case "Cart": return "cart.html";
-    case "Orders": return "#";
-    case "Bookings": return "#";
-    case "Payments": return "#";
-    default: return "index.html";
-  }
+</div>
+  `.trim();
 }
 
 // ---------- build ----------
-function ensureDir(p){ fs.mkdirSync(p, { recursive: true }); }
-function writeFile(p, content){ ensureDir(path.dirname(p)); fs.writeFileSync(p, content); }
-
-function main(){
-  const prompt = getPrompt(); // not required for the header; kept for future tweaks
-  const dist = path.join(process.cwd(), "dist");
-  ensureDir(dist);
-
-  writeFile(path.join(dist, "index.html"),        baseDoc("Home", "Home", homeMain()));
-  writeFile(path.join(dist, "about.html"),        baseDoc("About Us", "About Us", aboutMain()));
-  writeFile(path.join(dist, "services.html"),     baseDoc("Services & Pricing", "Services & Pricing", servicesMain()));
-  writeFile(path.join(dist, "shop.html"),         baseDoc("Shop", "Shop", shopMain()));
-  writeFile(path.join(dist, "get-involved.html"), baseDoc("Get Involved", "Get Involved", getInvolvedMain()));
-  writeFile(path.join(dist, "cart.html"),         baseDoc("Cart", "Home", cartMain()));
+async function main(){
+  await ensureDir(dist);
+  await writeFile(path.join(dist, "index.html"),        baseDoc("Home", "Home", homeMain()));
+  await writeFile(path.join(dist, "about.html"),        baseDoc("About Us", "About Us", aboutMain()));
+  await writeFile(path.join(dist, "services.html"),     baseDoc("Services & Pricing", "Services & Pricing", servicesMain()));
+  await writeFile(path.join(dist, "shop.html"),         baseDoc("Shop", "Shop", shopMain()));
+  await writeFile(path.join(dist, "get-involved.html"), baseDoc("Get Involved", "Get Involved", getInvolvedMain()));
+  await writeFile(path.join(dist, "cart.html"),         baseDoc("Cart", "Cart", cartMain()));
 
   if (process.env.GITHUB_STEP_SUMMARY) {
-    fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `\n**Built pages:** index, about, services, shop, get-involved, cart\n`);
+    fs.appendFileSync(
+      process.env.GITHUB_STEP_SUMMARY,
+      `\n**Built pages:** index, about, services, shop, get-involved, cart\n`
+    );
   }
 }
-main();
+main().catch(err=>{
+  console.error("Build failed:", err);
+  process.exitCode = 1;
+});
