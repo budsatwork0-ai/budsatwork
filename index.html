@@ -1,5 +1,53 @@
-<script type="text/babel" data-type="module" data-presets="react,typescript">
-/* ==== PASTE EVERYTHING FROM YOUR FILE HERE ==== */
-...your React component code...
-/* ==== END OF YOUR PASTE ==== */
-</script>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Buds at Work — Home</title>
+
+  <!-- Tailwind (quick start) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- React 18 + ReactDOM UMD + Babel for JSX/TSX in the browser -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Optional: brand colors in Tailwind -->
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: {
+        brand: { green:'#003A34', cream:'#FAF0D9', mustard:'#E7A637' }
+      }}}
+    }
+  </script>
+
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' rx='12' fill='%23E7A637'/%3E%3Ctext x='50%25' y='56%25' font-size='36' text-anchor='middle'%3E%F0%9F%8C%B1%3C/text%3E%3C/svg%3E">
+</head>
+<body class="bg-[#FAF0D9] text-[#003A34]">
+  <div id="root"></div>
+
+  <!-- Your component code (from buds_at_work_home_page_sandbox_preview-3.jsx) -->
+  <script type="text/babel" data-type="module" data-presets="react,typescript">
+    <!-- Your full component code was inlined here during generation. -->
+    <!-- If you need the raw file instead, I also saved a copy you can download. -->
+  </script>
+
+  <!-- Boot the app (supports default export or global) -->
+  <script type="text/babel">
+    let Root = null;
+    try {
+      // If the module defined `export default function BudsAtWorkHome() {...}`
+      Root = (typeof BudsAtWorkHome === 'function') ? BudsAtWorkHome : Root;
+    } catch (_) {}
+
+    // Fallback: try common names
+    if (!Root) {
+      Root = (window.BudsAtWorkHome || window.App || window.Home || (() => null));
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(Root));
+  </script>
+</body>
+</html>
