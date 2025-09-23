@@ -7,6 +7,16 @@ import fsp from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+function getPromptArg() {
+  const idx = process.argv.indexOf('--prompt');
+  if (idx !== -1 && process.argv[idx + 1]) return String(process.argv[idx + 1]);
+  const eq = process.argv.find(a => a.startsWith('--prompt='));
+  if (eq) return eq.split('=').slice(1).join('=');
+  return '';
+}
+const USER_PROMPT = getPromptArg();
+
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
@@ -247,7 +257,7 @@ function baseDoc(title, h1, mainHTML){
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>${title} • ${SITE.brand}</title>
-  <meta name="description" content="${SITE.brand} – Services that shine. Busy? Leave it to Buds.">
+<meta name="description" content="${USER_PROMPT || `${SITE.brand} – Services that shine. Busy? Leave it to Buds.`}">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' rx='12' fill='%23E7A637'/%3E%3Ctext x='50%25' y='54%25' font-size='36' text-anchor='middle'%3E%F0%9F%8C%B1%3C/text%3E%3C/svg%3E">
   <style>${baseCSS()}</style>
 </head>
@@ -257,7 +267,7 @@ function baseDoc(title, h1, mainHTML){
     <section class="hero">
       <div class="container">
         <h1>${h1}</h1>
-        <p class="muted">Busy? Leave it to Buds — inclusive work, real-world jobs, and a community that backs each other.</p>
+        <p class="muted">${USER_PROMPT || `${SITE.brand} — inclusive work, real-world jobs, and a community that backs each other.`}</p>
       </div>
     </section>
     <div class="container">${mainHTML}</div>
