@@ -241,32 +241,143 @@ function homeMain() {
   return `
 <section class="hero">
   <div class="container">
-    <h1>Busy? Leave it to Buds.</h1>
-    <p>Reliable local help for windows, lawns & gardens, and dump runs — powered by community.</p>
+    <h1>Work that empowers. <br class="hidden md"/>Services that shine ✨</h1>
+    <p>Two mates, one mission: inclusive, reliable help across cleaning, lawn & garden, windows, and dump runs — done right, by people who care.</p>
     <div class="actions">
-      <a class="btn primary" href="${hrefFor('Services & Pricing')}">See services & pricing</a>
-      <a class="btn ghost" href="${hrefFor('Get Involved')}">Get involved</a>
+      <a class="btn primary" href="#quote">Start a quote</a>
+      <a class="btn ghost" href="#services">See services & pricing</a>
     </div>
+    <p class="muted" style="margin-top:8px">★ 4.9/5 from locals · NDIS-friendly · Fully insured</p>
   </div>
 </section>
 
-<section class="section">
+<div class="container"><div style="height:12px;border-radius:999px;background:#DDCDA2;margin-top:12px"></div></div>
+
+<section id="services" class="section">
   <div class="container">
-    <h2>Services & Pricing</h2>
-    <div class="grid-3">
-      <div class="card"><h3>Window Cleaning</h3><p>Streak-free residential & commercial.</p><div class="price">from $80</div></div>
-      <div class="card"><h3>Lawn & Garden</h3><p>Mowing, edging, hedges, tidy-ups.</p><div class="price">from $50/hr</div></div>
-      <div class="card"><h3>Dump Runs</h3><p>Rubbish & green waste removal.</p><div class="price">from $80/m³</div></div>
+    <h2>Our services — starting prices</h2>
+    <p class="muted">Add services to your <strong>quote</strong>; we’ll confirm final price after a quick chat.</p>
+
+    <div class="grid-3" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:14px">
+      <article class="card" style="display:flex;align-items:stretch;padding:0;overflow:hidden">
+        <div style="width:8px;background:#003A34"></div>
+        <div style="flex:1;padding:16px">
+          <h3>Car Cleaning & Detailing</h3>
+          <p>Professional interior & exterior care</p>
+        </div>
+        <div style="width:240px;background:#003A34;color:#FAF0D9;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <span class="btn" style="background:#E7A637;color:#003A34;border:none;padding:6px 10px">From $80</span>
+          <a class="btn" href="#quote">Add to quote</a>
+        </div>
+      </article>
+
+      <article class="card" style="display:flex;align-items:stretch;padding:0;overflow:hidden">
+        <div style="width:8px;background:#003A34"></div>
+        <div style="flex:1;padding:16px">
+          <h3>Home Cleaning</h3>
+          <p>Reliable, thorough home cleaning</p>
+        </div>
+        <div style="width:240px;background:#003A34;color:#FAF0D9;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <span class="btn" style="background:#E7A637;color:#003A34;border:none;padding:6px 10px">From $50/hr</span>
+          <a class="btn" href="#quote">Add to quote</a>
+        </div>
+      </article>
+
+      <article class="card" style="display:flex;align-items:stretch;padding:0;overflow:hidden">
+        <div style="width:8px;background:#003A34"></div>
+        <div style="flex:1;padding:16px">
+          <h3>Dump Runs</h3>
+          <p>Rubbish & green waste removal</p>
+        </div>
+        <div style="width:240px;background:#003A34;color:#FAF0D9;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <span class="btn" style="background:#E7A637;color:#003A34;border:none;padding:6px 10px">From $80/m³</span>
+          <a class="btn" href="#quote">Add to quote</a>
+        </div>
+      </article>
+
+      <article class="card" style="display:flex;align-items:stretch;padding:0;overflow:hidden">
+        <div style="width:8px;background:#003A34"></div>
+        <div style="flex:1;padding:16px">
+          <h3>Lawn & Garden</h3>
+          <p>Mowing, edging, hedges, tidy-ups</p>
+        </div>
+        <div style="width:240px;background:#003A34;color:#FAF0D9;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <span class="btn" style="background:#E7A637;color:#003A34;border:none;padding:6px 10px">From $50</span>
+          <a class="btn" href="#quote">Add to quote</a>
+        </div>
+      </article>
     </div>
   </div>
 </section>
 
 <section class="section alt">
   <div class="container">
-    <h2>Recent Work</h2>
-    <div class="work-grid">
-      <div class="work"></div><div class="work"></div><div class="work"></div>
-      <div class="work"></div><div class="work"></div><div class="work"></div>
+    <h2>Get a quote in minutes</h2>
+    <div class="grid-3" style="gap:16px">
+      <div class="card"><strong>1.</strong> Pick a service</div>
+      <div class="card"><strong>2.</strong> Tell us size & timing</div>
+      <div class="card"><strong>3.</strong> Get your quote</div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <details><summary>Do you service my area?</summary><div>Greater Brisbane, Ipswich & surrounds.</div></details>
+      <details><summary>NDIS participants?</summary><div>Yes. We can provide invoices & notes.</div></details>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="row">
+      <div>
+        <h2>Shop — gear we use & love</h2>
+        <p class="muted">Purchase merch & work gear directly.</p>
+      </div>
+      <a class="btn" href="shop.html">View all</a>
+    </div>
+    <div class="grid-3" style="gap:16px;margin-top:12px">
+      <div class="card"><div class="work"></div><h3>BAW Logo Tee</h3><p>Soft cotton, relaxed fit</p><div class="row small"><span class="price">$35</span><a class="btn" href="#quote">Add to cart</a></div></div>
+      <div class="card"><div class="work"></div><h3>Mustard Work Cap</h3><p>Low profile, adjustable</p><div class="row small"><span class="price">$29</span><a class="btn" href="#quote">Add to cart</a></div></div>
+      <div class="card"><div class="work"></div><h3>Garden Gloves</h3><p>Grip palms, washable</p><div class="row small"><span class="price">$18</span><a class="btn" href="#quote">Add to cart</a></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <h2>Community impact in action</h2>
+    <div class="grid-3" style="gap:16px">
+      <div class="card"><div class="muted">Hours of support delivered (monthly)</div><div style="font-size:40px;font-weight:800">128</div></div>
+      <div class="card"><div class="muted">Windows cleaned (YTD)</div><div style="font-size:40px;font-weight:800">2,340</div></div>
+      <div class="card"><div class="muted">Lawns made tidy (YTD)</div><div style="font-size:40px;font-weight:800">1,176</div></div>
+    </div>
+    <blockquote class="card" style="margin-top:12px;background:#003A34;color:#FAF0D9">“Buds at Work are legends — punctual, thorough, and kind.” — <em>Local customer</em></blockquote>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <h2>Train. Mentor. Employ.</h2>
+    <p class="muted">We partner with RTOs, businesses, and retirees to create low-interruption study pathways and real-world placements.</p>
+    <div class="grid-3" style="gap:16px;margin-top:12px">
+      <div class="card"><h3>RTOs</h3><p>Subsidised training pathways; simple referral process.</p><a class="btn" href="#contact">Partner with us</a></div>
+      <div class="card"><h3>Businesses</h3><p>Host placements; hire job-ready trainees.</p><a class="btn" href="#contact">Offer placements</a></div>
+      <div class="card"><h3>Mentors/Retirees</h3><p>Share trade skills and guide learners.</p><a class="btn" href="#contact">Register interest</a></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="quote">
+  <div class="container row">
+    <div>
+      <h2>Where we work</h2>
+      <p class="muted">Flagstone · Greenbank · Jimboomba · Ipswich · Brisbane</p>
+    </div>
+    <div class="card">
+      <p>budsatwork@malucare.org · 0474 766 703</p>
+      <div class="row small" style="margin-top:8px">
+        <a class="btn" href="#booking">Request a quote</a>
+        <a class="btn ghost" href="#contact">Message us</a>
+      </div>
     </div>
   </div>
 </section>
