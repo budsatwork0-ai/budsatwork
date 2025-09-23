@@ -1,82 +1,39 @@
-name: Prompt to Pages
+- name: Build site
+  shell: bash
+  run: |
+    set -e
+    # 1) Make sure dist/ exists
+    mkdir -p dist
 
-on:
-  issue_comment:
-    types: [created]
-  workflow_dispatch:
-    inputs:
-      prompt:
-        description: "Manual prompt"
-        required: false
+    # 2) Pick the generator script you actually have
+    PROMPT="${{ steps.derive.outputs.prompt }}"
+    SCRIPT="scripts/generate_site.js"
+    if [ ! -f "$SCRIPT" ] && [ -f "scripts/generate_site-3.js" ]; then
+      SCRIPT="scripts/generate_site-3.js"
+    fi
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+    # 3) Run the generator (with or without prompt)
+    if [ -n "$PROMPT" ]; then
+      echo "Running with prompt:"
+      printf '%s\n' "$PROMPT"
+      node "$SCRIPT" --prompt "$PROMPT"
+    else
+      echo "No prompt provided; building with default."
+      node "$SCRIPT"
+    fi
 
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
-
-jobs:
-  build-and-deploy:
-    # Run on any comment that contains "/deploy", or on workflow_dispatch
-    if: github.event_name != 'issue_comment' || contains(github.event.comment.body, '/deploy')
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      # Safely extract the prompt and expose it as a step OUTPUT (no GITHUB_ENV).
-      - name: Derive prompt
-        id: derive
-        shell: bash
-        run: |
-          if [[ "${{ github.event_name }}" == "issue_comment" ]]; then
-            RAW="${{ github.event.comment.body }}"
-            # Everything after "/deploy" (trim leading spaces)
-            PROMPT="$(sed -n 's#.*\/deploy[[:space:]]*##p' <<<"$RAW")"
-          else
-            PROMPT="${{ github.event.inputs.prompt }}"
-          fi
-          # Write to step outputs (multiline-safe)
-          {
-            echo 'prompt<<EOF'
-            printf '%s\n' "$PROMPT"
-            echo 'EOF'
-          } >> "$GITHUB_OUTPUT"
-          echo "Derived prompt:"
-          printf '%s\n' "$PROMPT"
-
-      - name: Build site
-        shell: bash
-        run: |
-          PROMPT="${{ steps.derive.outputs.prompt }}"
-          if [[ -n "$PROMPT" ]]; then
-            echo "Running with prompt:"
-            printf '%s\n' "$PROMPT"
-            node scripts/generate_site.js --prompt "$PROMPT"
-          else
-            echo "No prompt provided; building with default blurb."
-            node scripts/generate_site.js
-          fi
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
+    # 4) Fallback: if the generator didn't create dist/index.html,
+    #    copy a static page so Pages still has a homepage.
+    if [ ! -f dist/index.html ]; then
+      if [ -f index.html ]; then
+        cp index.html dist/index.html
+      elif [ -f index-2.html ]; then
+        cp index-2.html dist/index.html
+      else
+        echo "❌ No dist/index.html produced and no root index.html/index-2.html to copy." >&2
+        exit 1
+      fi
+    fi
 
       - name: Deploy to GitHub Pages
         id: deployment
