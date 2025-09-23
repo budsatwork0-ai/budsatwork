@@ -1,4 +1,5 @@
 name: Prompt to Pages
+
 on:
   issue_comment:
     types: [created]
@@ -7,36 +8,77 @@ on:
       prompt:
         description: "Manual prompt"
         required: false
+
 permissions:
   contents: read
   pages: write
   id-token: write
+
 concurrency:
   group: "pages"
   cancel-in-progress: true
 
 jobs:
   build-and-deploy:
+    # Run on any comment that contains "/deploy", or on workflow_dispatch
     if: github.event_name != 'issue_comment' || contains(github.event.comment.body, '/deploy')
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+        with:
+          fetch-depth: 0
+
       - uses: actions/setup-node@v4
-        with: { node-version: 20 }
+        with:
+          node-version: 20
+
+      # Derive PROMPT from either:
+      # - issue comment: everything AFTER "/deploy"
+      # - workflow_dispatch: inputs.prompt
+      - name: Derive prompt
+        id: derive
+        run: |
+          if [ "${{ github.event_name }}" = "issue_comment" ]; then
+            RAW="${{ github.event.comment.body }}"
+            # Grab everything after "/deploy" (trim leading spaces)
+            PROMPT="$(printf "%s" "$RAW" | sed -n 's#.*\/deploy[[:space:]]*##p')"
+          else
+            PROMPT="${{ github.event.inputs.prompt }}"
+          fi
+
+          # Export to env for later steps
+          {
+            echo "PROMPT<<'EOF'"
+            echo "$PROMPT"
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+
+          echo "Derived prompt:"
+          echo "$PROMPT"
+
       - name: Build site
-        run: node scripts/generate_site.js
-        env:
-          INPUT_PROMPT: ${{ github.event.inputs.prompt || '' }}
+        run: |
+          if [ -n "${PROMPT}" ]; then
+            echo "Running with prompt:"
+            printf '%s\n' "$PROMPT"
+            node scripts/generate_site.js --prompt "${PROMPT}"
+          else
+            echo "No prompt provided; building with default blurb."
+            node scripts/generate_site.js
+          fi
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
