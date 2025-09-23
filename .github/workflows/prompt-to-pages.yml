@@ -36,36 +36,35 @@ jobs:
         with:
           node-version: 20
 
-      # Derive PROMPT from either:
-      # - issue comment: everything AFTER "/deploy"
-      # - workflow_dispatch: inputs.prompt
+      # Safely extract the prompt and expose it as a step OUTPUT (no GITHUB_ENV).
       - name: Derive prompt
         id: derive
+        shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "issue_comment" ]; then
+          if [[ "${{ github.event_name }}" == "issue_comment" ]]; then
             RAW="${{ github.event.comment.body }}"
-            # Grab everything after "/deploy" (trim leading spaces)
-            PROMPT="$(printf "%s" "$RAW" | sed -n 's#.*\/deploy[[:space:]]*##p')"
+            # Everything after "/deploy" (trim leading spaces)
+            PROMPT="$(sed -n 's#.*\/deploy[[:space:]]*##p' <<<"$RAW")"
           else
             PROMPT="${{ github.event.inputs.prompt }}"
           fi
-
-          # Export to env for later steps
+          # Write to step outputs (multiline-safe)
           {
-            echo "PROMPT<<'EOF'"
-            echo "$PROMPT"
-            echo "EOF"
-          } >> "$GITHUB_ENV"
-
+            echo 'prompt<<EOF'
+            printf '%s\n' "$PROMPT"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
           echo "Derived prompt:"
-          echo "$PROMPT"
+          printf '%s\n' "$PROMPT"
 
       - name: Build site
+        shell: bash
         run: |
-          if [ -n "${PROMPT}" ]; then
+          PROMPT="${{ steps.derive.outputs.prompt }}"
+          if [[ -n "$PROMPT" ]]; then
             echo "Running with prompt:"
             printf '%s\n' "$PROMPT"
-            node scripts/generate_site.js --prompt "${PROMPT}"
+            node scripts/generate_site.js --prompt "$PROMPT"
           else
             echo "No prompt provided; building with default blurb."
             node scripts/generate_site.js
