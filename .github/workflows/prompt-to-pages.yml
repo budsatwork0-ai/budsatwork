@@ -80,7 +80,11 @@ jobs:
             node "$SCRIPT"
           fi
 
-          # 4) Fallback homepage if generator didn't make one
+      # Ensure an index.html exists in dist/
+      - name: Ensure homepage
+        shell: bash
+        run: |
+          mkdir -p dist
           if [ ! -f dist/index.html ]; then
             if [ -f index.html ]; then
               cp index.html dist/index.html
@@ -91,10 +95,6 @@ jobs:
               exit 1
             fi
           fi
-- name: Ensure homepage
-  run: |
-    mkdir -p dist
-    [ -f dist/index.html ] || cp index.html dist/index.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
