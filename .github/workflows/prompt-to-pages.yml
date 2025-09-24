@@ -91,6 +91,10 @@ jobs:
               exit 1
             fi
           fi
+- name: Ensure homepage
+  run: |
+    mkdir -p dist
+    [ -f dist/index.html ] || cp index.html dist/index.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
