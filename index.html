@@ -5,49 +5,812 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Buds at Work — Home</title>
 
-  <!-- Tailwind (quick start) -->
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- React 18 + ReactDOM UMD + Babel for JSX/TSX in the browser -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <!-- React 18 + ReactDOM + Babel -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-  <!-- Optional: brand colors in Tailwind -->
-  <script>
-    tailwind.config = {
-      theme: { extend: { colors: {
-        brand: { green:'#003A34', cream:'#FAF0D9', mustard:'#E7A637' }
-      }}}
-    }
-  </script>
-
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' rx='12' fill='%23E7A637'/%3E%3Ctext x='50%25' y='56%25' font-size='36' text-anchor='middle'%3E%F0%9F%8C%B1%3C/text%3E%3C/svg%3E">
 </head>
 <body class="bg-[#FAF0D9] text-[#003A34]">
   <div id="root"></div>
 
-  <!-- Your component code (from buds_at_work_home_page_sandbox_preview-3.jsx) -->
+  <!-- PASTE YOUR ENTIRE buds_at_work_home_page_sandbox_preview-3.jsx HERE -->
   <script type="text/babel" data-type="module" data-presets="react,typescript">
-    <!-- Your full component code was inlined here during generation. -->
-    <!-- If you need the raw file instead, I also saved a copy you can download. -->
+    // ==== BEGIN YOUR CODE ====
+'use client'
+import { useState } from 'react'
+
+// ————————————————————————————————————————————————
+// ROOT: wraps page UI with light state so everything "just works"
+// ————————————————————————————————————————————————
+export default function BudsAtWorkHome() {
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [route, setRoute] = useState<'home'|'account'|'shop'>('home')
+  type LineItem = { id:string; name:string; price:number; qty:number; kind:'service'|'product' }
+  const [items, setItems] = useState<LineItem[]>([])
+
+  function addItem(item: Omit<LineItem,'qty'>){
+    setItems(prev => {
+      const found = prev.find(i => i.id===item.id && i.kind===item.kind)
+      if (found) return prev.map(i => (i.id===item.id && i.kind===item.kind) ? { ...i, qty: i.qty+1 } : i)
+      return [...prev, { ...item, qty: 1 }]
+    })
+    setDrawerOpen(true)
+  }
+  function removeItem(id:string, kind: 'service'|'product'){ setItems(prev => prev.filter(i => !(i.id===id && i.kind===kind))) }
+  function setQty(id:string, kind:'service'|'product', qty:number){ setItems(prev => prev.map(i=> (i.id===id && i.kind===kind) ? { ...i, qty: Math.max(1, qty) } : i)) }
+
+  const serviceItems = items.filter(i=>i.kind==='service')
+  const productItems = items.filter(i=>i.kind==='product')
+  const productSubtotal = productItems.reduce((s,i)=> s + i.price * i.qty, 0)
+
+  return (
+    <div className="min-h-screen bg-[#FAF0D9] text-[#003A34]">
+      <Header
+        route={route}
+        onOpenDrawer={()=>setDrawerOpen(true)}
+        onGoHome={()=>setRoute('home')}
+        onGoAccount={()=>setRoute('account')}
+        onGoShop={()=>setRoute('shop')}
+        onBookNow={()=>addItem({ id:'quote', name:'Quote request', price:0, kind:'service' })}
+      />
+
+      {route==='home' && (
+        <>
+          <Hero onAddService={(name)=>addItem({ id:name, name, price:0, kind:'service' })} />
+          <Connector />
+          <Services onAddService={(name, starting)=>addItem({ id:name, name, price:starting, kind:'service' })} />
+          <HowBookingWorks />
+          <ShopTeaser onAddProduct={(p)=>addItem({ id:p.id, name:p.name, price:p.price, kind:'product' })} />
+          <Impact />
+          <Involved />
+          <AreasContact />
+          <Footer />
+        </>
+      )}
+
+      {route==='account' && (
+        <>
+          <AccountPage onBack={()=>setRoute('home')} />
+          <Footer />
+        </>
+      )}
+
+      {route==='shop' && (
+        <>
+          <ShopPage onBack={()=>setRoute('home')} onAddProduct={(p)=>addItem({ id:p.id, name:p.name, price:p.price, kind:'product' })} />
+          <Footer />
+        </>
+      )}
+
+      <QuoteCartDrawer
+        open={drawerOpen}
+        onClose={()=>setDrawerOpen(false)}
+        serviceItems={serviceItems}
+        productItems={productItems}
+        productSubtotal={productSubtotal}
+        onQty={(id,kind,qty)=>setQty(id,kind,qty)}
+        onRemove={(id,kind)=>removeItem(id,kind)}
+      />
+    </div>
+  )
+}
+
+// ————————————————————————————————————————————————
+// HEADER
+// ————————————————————————————————————————————————
+function Header({ route, onOpenDrawer, onGoHome, onGoAccount, onGoShop, onBookNow }:{ route:'home'|'account'|'shop'; onOpenDrawer:()=>void; onGoHome:()=>void; onGoAccount:()=>void; onGoShop:()=>void; onBookNow:()=>void }){
+  return (
+    <header className="sticky top-0 z-30 w-full border-b border-black/5 bg-[#003A34]/95 backdrop-blur supports-[backdrop-filter]:bg-[#003A34]/80">
+      <div className="mx-auto max-w-[1600px] px-4 md:px-6 lg:px-10 py-3 md:py-4 flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-3 md:gap-4 min-w-0">
+          <img alt="Buds at Work logo" src="/logo-buds-at-work.png" className="h-8 w-8 rounded-lg object-contain ring-2 ring-[#E7A637]"/>
+          <span className="text-[#FAF0D9] font-semibold tracking-wide truncate hidden lg:inline">Buds at Work</span>
+        </div>
+        <nav className="flex flex-1 min-w-0 items-center justify-center gap-x-3 md:gap-x-4 text-[#FAF0D9] text-[13px] md:text-[15px] overflow-x-auto whitespace-nowrap [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <a className={navCls(route==='home')} onClick={onGoHome}>Home</a>
+          <a className="hover:text-[#E7A637]">About</a>
+          <a className="hover:text-[#E7A637]">Services & Pricing</a>
+          <a className="hover:text-[#E7A637]">Get Involved</a>
+          <a className={navCls(route==='shop')} onClick={onGoShop}>Shop</a>
+          <button onClick={onBookNow} className="ml-2 inline-flex items-center rounded-full bg-[#E7A637] text-[#003A34] px-4 py-1.5 font-semibold shadow-[0_3px_0_0_#C88C2C] active:translate-y-0.5 active:shadow-[0_2px_0_0_#C88C2C]">Book now</button>
+        </nav>
+        <div className="flex items-center gap-2 ml-auto">
+          <button aria-label="Open cart" onClick={onOpenDrawer} className="inline-flex h-9 w-9 md:h-10 md:w-10 items-center justify-center rounded-full bg-[#FAF0D9] text-[#003A34] ring-1 ring-black/10 hover:brightness-105"><IconCart/></button>
+          <button aria-label="Account" onClick={onGoAccount} className="inline-flex h-9 w-9 md:h-10 md:w-10 items-center justify-center rounded-full bg-[#FAF0D9] text-[#003A34] ring-1 ring-black/10 hover:brightness-105"><IconUser/></button>
+        </div>
+      </div>
+    </header>
+  )
+}
+
+// ————————————————————————————————————————————————
+// HERO
+// ————————————————————————————————————————————————
+function Hero({ onAddService }:{ onAddService:(name:string)=>void }){
+  return (
+    <section className="mx-auto max-w-[1600px] px-6 pt-16 pb-20 grid md:grid-cols-2 items-center gap-12">
+      <div>
+        <h1 className="font-black leading-tight text-5xl md:text-7xl">Work that empowers. <br className="hidden md:block"/>Services that shine ✨</h1>
+        <p className="mt-6 text-lg text-[#3D6353] max-w-xl">Two mates, one mission: inclusive, reliable help across cleaning, lawn & garden, windows, and dump runs — done right, by people who care.</p>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <ButtonPrimary onClick={()=>onAddService('Quote request')}>Start a quote</ButtonPrimary>
+          <ButtonSecondary>See services & pricing</ButtonSecondary>
+        </div>
+        <p className="mt-5 text-sm text-[#6B7D76]">★ 4.9/5 from locals · NDIS‑friendly · Fully insured</p>
+      </div>
+      <div className="relative">
+        <div className="aspect-[16/9] w-full" aria-label="Buds at Work hero illustration">
+          <HeroIllustration className="h-full w-full object-contain object-center md:max-h-[520px] max-h-[360px]" alt="Two friendly Buds working together" />
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function Connector(){
+  return (<div className="mx-auto max-w-[1600px] px-6"><div className="h-3 rounded-full bg-[#DDCDA2]"/></div>)
+}
+
+// ————————————————————————————————————————————————
+// SERVICES (quote-only) — REBALANCED CARDS
+// ————————————————————————————————————————————————
+function Services({ onAddService }:{ onAddService:(name:string, starting:number)=>void }){
+  return (
+    <section className="py-12">
+      <div className="mx-auto max-w-[1600px] px-6">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <h2 className="text-3xl md:text-4xl font-extrabold">Our services — starting prices</h2>
+            <p className="mt-1 text-sm md:text-base text-[#3D6353]">Add services to your <strong>Quote</strong>; we’ll confirm final price after a quick chat.</p>
+          </div>
+        </div>
+
+        {/* Long modern tiles with balanced grid */}
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {cards.map((c) => (
+            <article
+              key={c.title}
+              className="group relative overflow-hidden rounded-3xl bg-white ring-1 ring-black/10 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(0,0,0,0.08)]"
+            >
+              {/* subtle top accent */}
+              <div className="absolute inset-x-0 top-0 h-1 bg-[#003A34]/80"/>
+
+              {/* 3-column layout on md+: icon | content | actions */}
+              <div className="grid grid-cols-1 md:grid-cols-[auto,1fr,auto] md:items-center gap-5 md:gap-6 p-6 md:p-7">
+                {/* Icon */}
+                <div className="flex md:block items-center">
+                  <div className="h-12 w-12 shrink-0 rounded-2xl bg-[#003A34]/10 grid place-items-center">
+                    <ServiceIcon code={c.icon} className="text-[#003A34]"/>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="min-w-0">
+                  <h3 className="text-2xl md:text-[28px] font-extrabold tracking-tight text-[#003A34]">{c.title}</h3>
+                  <p className="mt-1 text-sm md:text-base text-[#3D6353] leading-relaxed">{c.tagline}</p>
+                </div>
+
+                {/* Actions */}
+                <div className="flex md:block items-center justify-between gap-3 md:gap-4">
+                  <span className="inline-flex items-center rounded-full bg-[#E7A637] px-3 py-1 text-sm font-bold text-[#003A34] shadow-[0_2px_0_0_#C88C2C]">{c.price}</span>
+                  <div className="flex md:mt-3 gap-2">
+                    <ButtonPrimary small onClick={()=>onAddService(c.title, extractPrice(c.price))}>Add to quote</ButtonPrimary>
+                    <ButtonTertiary small>Details</ButtonTertiary>
+                  </div>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ————————————————————————————————————————————————
+// HOW BOOKING WORKS — match card language/spacing
+// ————————————————————————————————————————————————
+function HowBookingWorks(){
+  return (
+    <section className="relative isolate py-16">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-[#FAF0D9] via-[#DDCDA2]/50 to-[#FAF0D9]"/>
+      <div className="mx-auto max-w-[1600px] px-6">
+        <h2 className="text-3xl md:text-4xl font-extrabold">Get a quote in minutes</h2>
+        <div className="mt-8 grid md:grid-cols-3 gap-6">
+          {steps.map((s) => (
+            <div key={s.t} className="rounded-3xl bg-white p-6 ring-1 ring-black/10 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+              <div className="h-10 w-10 rounded-xl bg-[#003A34]/10 grid place-items-center"><span className="text-sm font-bold text-[#003A34]">{s.i}</span></div>
+              <h3 className="mt-4 text-xl font-extrabold text-[#003A34]">{s.t}</h3>
+              <p className="text-[#3D6353] leading-relaxed">{s.d}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-10 divide-y divide-black/10 rounded-3xl border border-black/10 bg-white/70">
+          <details className="p-5 group">
+            <summary className="cursor-pointer font-semibold text-[#3D6353]">Do you service my area?</summary>
+            <p className="pt-3 text-[#3D6353]">Greater Brisbane, Ipswich & surrounds.</p>
+          </details>
+          <details className="p-5 group">
+            <summary className="cursor-pointer font-semibold text-[#3D6353]">NDIS participants?</summary>
+            <p className="pt-3 text-[#3D6353]">Yes. We can provide invoices & notes.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ————————————————————————————————————————————————
+// SHOP TEASER (buy now) — cards aligned with Services style
+// ————————————————————————————————————————————————
+function ShopTeaser({ onAddProduct }:{ onAddProduct:(p:{id:string; name:string; price:number})=>void }){
+  return (
+    <section className="py-16">
+      <div className="mx-auto max-w-[1600px] px-6">
+        <div className="flex items-end justify-between gap-6">
+          <div>
+            <h2 className="text-3xl md:text-4xl font-extrabold">Shop — gear we use & love</h2>
+            <p className="mt-2 text-[#3D6353]">Purchase merch & work gear directly.</p>
+          </div>
+          <div className="hidden md:block"><ButtonSecondary>View all</ButtonSecondary></div>
+        </div>
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {products.slice(0,3).map((p) => (
+            <div key={p.id} className="rounded-3xl bg-white ring-1 ring-black/10 p-6 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+              <div className="aspect-[4/3] w-full rounded-2xl bg-[#DDCDA2] grid place-items-center"><span className="text-sm font-semibold text-[#003A34] opacity-80">{p.imageAlt}</span></div>
+              <h3 className="mt-4 text-xl font-extrabold text-[#003A34]">{p.name}</h3>
+              <p className="mt-1 text-[#3D6353]">{p.tagline}</p>
+              <div className="mt-4 flex items-center justify-between">
+                <span className="text-lg font-extrabold">${p.price.toFixed(0)}</span>
+                <ButtonPrimary small onClick={()=>onAddProduct({ id:p.id, name:p.name, price:p.price })}>Add to cart</ButtonPrimary>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-6 md:hidden"><ButtonSecondary>View all</ButtonSecondary></div>
+      </div>
+    </section>
+  )
+}
+
+// ————————————————————————————————————————————————
+// IMPACT / INVOLVED / CONTACT / FOOTER — spacing unified
+// ————————————————————————————————————————————————
+function Impact(){
+  return (
+    <section className="py-16">
+      <div className="mx-auto max-w-[1600px] px-6">
+        <h2 className="text-3xl md:text-4xl font-extrabold">Community impact in action</h2>
+        <div className="mt-8 grid lg:grid-cols-3 gap-6">
+          {stats.map((s) => (
+            <div key={s.label} className="rounded-3xl bg-white ring-1 ring-black/10 p-6">
+              <p className="text-[#6B7D76] text-sm">{s.label}</p>
+              <p className="text-5xl font-black mt-1 text-[#003A34]">{s.value}</p>
+              <div className="mt-3 h-[2px] w-full bg-[#3D6353]"/>
+            </div>
+          ))}
+        </div>
+        <blockquote className="mt-8 rounded-3xl bg-[#003A34] p-8 text-[#FAF0D9] text-lg">“Buds at Work are legends — punctual, thorough, and kind.” — <span className="italic">Local customer</span></blockquote>
+        <div className="mt-6 flex flex-wrap items-center gap-3 text-[#3D6353]"><Badge>Insured</Badge><Badge>Police checks</Badge><Badge>ABN</Badge><Badge>NDIS‑friendly</Badge></div>
+        <div className="mt-8"><ButtonPrimary>Get involved — sponsor or partner</ButtonPrimary></div>
+      </div>
+    </section>
+  )
+}
+
+function Involved(){
+  return (
+    <section className="py-16">
+      <div className="mx-auto max-w-[1600px] px-6">
+        <h2 className="text-3xl md:text-4xl font-extrabold">Train. Mentor. Employ.</h2>
+        <p className="mt-4 max-w-3xl text-[#3D6353]">We partner with RTOs, businesses, and retirees to create low‑interruption study pathways and real‑world placements. Support workers can upskill too — even if they don’t meet free‑TAFE criteria.</p>
+        <div className="mt-8 grid md:grid-cols-3 gap-6">
+          <InfoCard title="RTOs" body="Subsidised training pathways; simple referral process." cta="Partner with us" />
+          <InfoCard title="Businesses" body="Host placements; hire job‑ready trainees." cta="Offer placements" />
+          <InfoCard title="Mentors/Retirees" body="Share trade skills and guide learners." cta="Register interest" />
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function AreasContact(){
+  return (
+    <section className="py-16">
+      <div className="mx-auto max-w-[1600px] px-6 grid lg:grid-cols-2 gap-8 items-start">
+        <div>
+          <h2 className="text-3xl md:text-4xl font-extrabold">Where we work</h2>
+          <p className="mt-4 text-[#3D6353]">Flagstone · Greenbank · Jimboomba · Ipswich · Brisbane</p>
+        </div>
+        <div className="rounded-3xl bg-[#003A34] p-8 text-[#FAF0D9]">
+          <p>budsatwork@malucare.org · 0474 766 703</p>
+          <div className="mt-4 flex flex-wrap gap-3"><ButtonPrimary>Request a quote</ButtonPrimary><ButtonTertiary>Message us</ButtonTertiary></div>
+          <div className="mt-6 flex gap-4 opacity-90"><div className="h-8 w-8 rounded-full bg-[#DDCDA2]"/><div className="h-8 w-8 rounded-full bg-[#DDCDA2]"/><div className="h-8 w-8 rounded-full bg-[#DDCDA2]"/></div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function Footer(){
+  return (
+    <footer className="py-10 border-t border-black/10">
+      <div className="mx-auto max-w-[1600px] px-6 flex flex-col md:flex-row gap-6 md:items-center md:justify-between">
+        <nav className="flex flex-wrap gap-5 text-[#3D6353]"><a>Services</a><a>Pricing</a><a>Get Involved</a><a>FAQs</a><a>Policies</a></nav>
+        <p className="text-[#6B7D76]">“Busy? Leave it to Buds.”</p>
+      </div>
+    </footer>
+  )
+}
+
+// ————————————————————————————————————————————————
+// QUOTE + CART DRAWER (two clearly separated flows)
+// ————————————————————————————————————————————————
+function QuoteCartDrawer({ open, onClose, serviceItems, productItems, productSubtotal, onQty, onRemove }:{
+  open:boolean; onClose:()=>void;
+  serviceItems:{id:string;name:string;price:number;qty:number;kind:'service'}[];
+  productItems:{id:string;name:string;price:number;qty:number;kind:'product'}[];
+  productSubtotal:number;
+  onQty:(id:string,kind:'service'|'product',qty:number)=>void;
+  onRemove:(id:string,kind:'service'|'product')=>void;
+}){
+  const [tab, setTab] = useState<'quote'|'cart'>('quote')
+  const [stage, setStage] = useState<'view'|'form'|'sent'>('view')
+  const [form, setForm] = useState({ name:'', email:'', phone:'', address:'', preferred:'', notes:'' })
+
+  function submitQuote(e: React.FormEvent){
+    e.preventDefault()
+    const to = 'budsatwork@malucare.org'
+    const subject = encodeURIComponent('QUOTE REQUEST — Buds at Work')
+    const lines = [
+      'QUOTE REQUEST — Buds at Work','',
+      `Name: ${form.name}`,
+      `Email: ${form.email}`,
+      `Phone: ${form.phone}`,
+      `Address: ${form.address}`,
+      `Preferred time: ${form.preferred}`,
+      `Notes: ${form.notes}`,
+      '',
+      'Selected services/items:',
+      ...serviceItems.map(i=>`• ${i.name} × ${i.qty}`),
+      '',
+      'Please provide an estimate and confirm availability.'
+    ].join('%0A')
+    window.location.href = `mailto:${to}?subject=${subject}&body=${lines}`
+    setStage('sent')
+  }
+
+  function checkoutProducts(){
+    if(productItems.length===0){ setTab('quote'); return }
+    const to = 'orders@malucare.org'
+    const subject = encodeURIComponent('SHOP ORDER — Buds at Work')
+    const lines = [
+      'SHOP ORDER — Buds at Work','',
+      ...productItems.map(i=>`• ${i.name} × ${i.qty} — $${(i.price*i.qty).toFixed(0)}`),
+      '',
+      `Subtotal: $${productSubtotal.toFixed(0)}`,
+      '',
+      'Your contact & delivery details:',
+      '- Name:',
+      '- Phone:',
+      '- Address:',
+    ].join('%0A')
+    window.location.href = `mailto:${to}?subject=${subject}&body=${lines}`
+  }
+
+  return (
+    <div className={`fixed inset-0 z-50 ${open? 'pointer-events-auto' : 'pointer-events-none'}`} aria-hidden={!open}>
+      <div onClick={()=>{onClose(); setStage('view')}} className={`absolute inset-0 bg-black/40 transition-opacity ${open? 'opacity-100' : 'opacity-0'}`}></div>
+      <aside className={`absolute right-0 top-0 h-full w-full max-w-[480px] bg-[#FAF0D9] shadow-xl transition-transform ${open? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className="flex items-center justify-between p-5 border-b border-black/10">
+          <div className="inline-flex rounded-full bg-white/70 ring-1 ring-black/10 overflow-hidden">
+            <button onClick={()=>{setTab('quote'); setStage('view')}} className={`px-4 py-1.5 text-sm font-semibold ${tab==='quote'?'bg-[#003A34] text-[#FAF0D9]':'text-[#003A34]'}`}>Quote</button>
+            <button onClick={()=>{setTab('cart'); setStage('view')}} className={`px-4 py-1.5 text-sm font-semibold ${tab==='cart'?'bg-[#003A34] text-[#FAF0D9]':'text-[#003A34]'}`}>Cart</button>
+          </div>
+          <button onClick={()=>{onClose(); setStage('view')}} className="rounded-xl px-3 py-2 hover:bg-black/5"><IconX/></button>
+        </div>
+
+        {/* QUOTE TAB */}
+        {tab==='quote' && (
+          stage==='view' ? (
+            <>
+              <div className="p-5 space-y-4 max-h-[calc(100vh-220px)] overflow-y-auto">
+                {serviceItems.length===0 && <p className="text-[#3D6353]">Your quote is empty. Add services from the homepage.</p>}
+                {serviceItems.map(it => (
+                  <div key={it.id} className="flex items-center justify-between gap-3 rounded-2xl bg-white p-4 ring-1 ring-black/5">
+                    <div><p className="font-semibold">{it.name}</p></div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={()=>onQty(it.id,'service',it.qty-1)} className="h-8 w-8 rounded-full bg-[#003A34] text-[#FAF0D9] grid place-items-center">−</button>
+                      <span className="w-8 text-center font-semibold">{it.qty}</span>
+                      <button onClick={()=>onQty(it.id,'service',it.qty+1)} className="h-8 w-8 rounded-full bg-[#003A34] text-[#FAF0D9] grid place-items-center">+</button>
+                    </div>
+                    <div className="text-right"><button onClick={()=>onRemove(it.id,'service')} className="text-[#E7A637] text-sm hover:underline">Remove</button></div>
+                  </div>
+                ))}
+              </div>
+              <div className="p-5 border-t border-black/10">
+                <p className="text-sm text-[#3D6353]"><strong>This is a quote request.</strong> Final pricing depends on scope, size and time required.</p>
+                <div className="mt-4 flex gap-3">
+                  <ButtonSecondary onClick={()=>{}}>Continue</ButtonSecondary>
+                  <ButtonPrimary onClick={()=>setStage('form')}>Request a quote</ButtonPrimary>
+                </div>
+              </div>
+            </>
+          ) : stage==='form' ? (
+            <form onSubmit={submitQuote} className="p-5 space-y-3 max-h-[calc(100vh-120px)] overflow-y-auto">
+              <div className="grid grid-cols-1 gap-3">
+                <label className="text-sm font-semibold">Name<input required value={form.name} onChange={e=>setForm({...form, name:e.target.value})} className="mt-1 w-full rounded-xl border border-black/10 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#E7A637]"/></label>
+                <label className="text-sm font-semibold">Email<input type="email" required value={form.email} onChange={e=>setForm({...form, email:e.target.value})} className="mt-1 w-full rounded-xl border border-black/10 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#E7A637]"/></label>
+                <label className="text-sm font-semibold">Phone<input value={form.phone} onChange={e=>setForm({...form, phone:e.target.value})} className="mt-1 w-full rounded-xl border border-black/10 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#E7A637]"/></label>
+                <label className="text-sm font-semibold">Address<input value={form.address} onChange={e=>setForm({...form, address:e.target.value})} className="mt-1 w-full rounded-xl border border-black/10 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#E7A637]"/></label>
+                <label className="text-sm font-semibold">Preferred time<input placeholder="e.g., Tue after 3pm" value={form.preferred} onChange={e=>setForm({...form, preferred:e.target.value})} className="mt-1 w-full rounded-xl border border-black/10 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#E7A637]"/></label>
+                <label className="text-sm font-semibold">Notes<textarea value={form.notes} onChange={e=>setForm({...form, notes:e.target.value})} className="mt-1 w-full rounded-xl border border-black/10 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#E7A637]" rows={3}/></label>
+              </div>
+              <div className="pt-2 flex items-center justify-between">
+                <ButtonTertiary onClick={()=>setStage('view')}>Back</ButtonTertiary>
+                <ButtonPrimary>Send request</ButtonPrimary>
+              </div>
+            </form>
+          ) : (
+            <div className="p-6">
+              <p className="text-lg font-semibold text-[#003A34]">Thanks! Your email client should have opened with the quote request prefilled.</p>
+              <p className="mt-2 text-[#3D6353]">If it didn’t, email <span className="underline">budsatwork@malucare.org</span> with your details and we’ll confirm ASAP.</p>
+              <div className="mt-4"><ButtonPrimary onClick={()=>{ setStage('view'); onClose(); }}>Close</ButtonPrimary></div>
+            </div>
+          )
+        )}
+
+        {/* CART TAB */}
+        {tab==='cart' && (
+          <>
+            <div className="p-5 space-y-4 max-h-[calc(100vh-220px)] overflow-y-auto">
+              {productItems.length===0 && <p className="text-[#3D6353]">Your cart is empty. Add items from the Shop.</p>}
+              {productItems.map(it => (
+                <div key={it.id} className="flex items-center justify-between gap-3 rounded-2xl bg-white p-4 ring-1 ring-black/5">
+                  <div>
+                    <p className="font-semibold">{it.name}</p>
+                    <p className="text-sm text-[#3D6353]">${it.price.toFixed(0)} each</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={()=>onQty(it.id,'product',it.qty-1)} className="h-8 w-8 rounded-full bg-[#003A34] text-[#FAF0D9] grid place-items-center">−</button>
+                    <span className="w-8 text-center font-semibold">{it.qty}</span>
+                    <button onClick={()=>onQty(it.id,'product',it.qty+1)} className="h-8 w-8 rounded-full bg-[#003A34] text-[#FAF0D9] grid place-items-center">+</button>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold">${(it.price*it.qty).toFixed(0)}</p>
+                    <button onClick={()=>onRemove(it.id,'product')} className="text-[#E7A637] text-sm hover:underline">Remove</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="p-5 border-t border-black/10">
+              <div className="flex items-center justify-between"><span className="font-semibold">Subtotal</span><span className="text-xl font-extrabold">${productSubtotal.toFixed(0)}</span></div>
+              <p className="mt-1 text-sm text-[#3D6353]">Checkout by email for now. We’ll confirm shipping & send a payment link.</p>
+              <div className="mt-4 flex gap-3">
+                <ButtonSecondary onClick={()=>{}}>Continue shopping</ButtonSecondary>
+                <ButtonPrimary onClick={checkoutProducts}>Checkout</ButtonPrimary>
+              </div>
+            </div>
+          </>
+        )}
+      </aside>
+    </div>
+  )
+}
+
+// ————————————————————————————————————————————————
+// ACCOUNT PAGE
+// ————————————————————————————————————————————————
+function AccountPage({ onBack }:{ onBack:()=>void }){
+  const [email, setEmail] = useState('')
+  const [sent, setSent] = useState(false)
+  return (
+    <main className="mx-auto max-w-[900px] px-6 py-16">
+      <button onClick={onBack} className="mb-6 inline-flex items-center gap-2 text-[#3D6353] hover:underline"><IconArrowLeft/> Back to home</button>
+      <h1 className="text-4xl font-black">Account</h1>
+      <p className="mt-2 text-[#3D6353] max-w-2xl">Sign in with a magic link. No password needed.</p>
+      <div className="mt-8 rounded-3xl bg-white/70 p-6 ring-1 ring-black/10">
+        {sent ? (
+          <p className="text-[#3D6353]">We’ve sent a sign‑in link to <strong>{email}</strong>. Check your inbox and come back to this tab.</p>
+        ) : (
+          <form className="space-y-3" onSubmit={(e)=>{e.preventDefault(); setSent(true)}}>
+            <label className="block text-sm font-semibold">Email</label>
+            <input value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="you@example.com" className="w-full rounded-xl border border-black/10 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#E7A637]"/>
+            <ButtonPrimary>Send magic link</ButtonPrimary>
+            <p className="text-xs text-[#3D6353]">We’ll email you a secure link. If you didn’t receive it, check spam.</p>
+          </form>
+        )}
+      </div>
+      <section className="mt-10">
+        <h2 className="text-2xl font-extrabold">Orders & bookings</h2>
+        <p className="mt-2 text-[#3D6353]">When you’re signed in, your bookings and shop orders will show here.</p>
+        <div className="mt-4 grid grid-cols-1 gap-3">
+          <div className="rounded-2xl bg-[#DDCDA2] p-4 text-[#003A34]">No recent activity.</div>
+        </div>
+      </section>
+    </main>
+  )
+}
+
+// Utility for active nav style
+function navCls(active:boolean){
+  return `hover:text-[#E7A637] ${active? 'text-[#E7A637] font-semibold' : ''}`
+}
+
+// ————————————————————————————————————————————————
+// ICONS (inline SVG)
+// ————————————————————————————————————————————————
+function IconCart({ className='' }:{ className?:string }){
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className + ' w-5 h-5'}>
+      <circle cx="8" cy="19" r="2"/>
+      <circle cx="17" cy="19" r="2"/>
+      <path d="M2 3h2l.4 2M6 6h14l-2 7H7L6 6z"/>
+    </svg>
+  )
+}
+function IconUser({ className='' }:{ className?:string }){
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className + ' w-5 h-5'}>
+      <path d="M20 21a8 8 0 0 0-16 0"/>
+      <circle cx="12" cy="7" r="4"/>
+    </svg>
+  )
+}
+function IconChevronRight({ className='' }:{ className?:string }){
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className + ' w-4 h-4'}>
+      <polyline points="9 18 15 12 9 6"/>
+    </svg>
+  )
+}
+function IconSparkles({ className='' }:{ className?:string }){
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className + ' w-5 h-5'}>
+      <path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3z"/>
+      <path d="M19 3l.9 2.1L22 6l-2.1.9L19 9l-.9-2.1L16 6l2.1-.9L19 3z"/>
+      <path d="M7 16l.6 1.4L9 18l-1.4.6L7 20l-.6-1.4L5 18l1.4-.6L7 16z"/>
+    </svg>
+  )
+}
+function IconX({ className='' }:{ className?:string }){
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className + ' w-5 h-5'}>
+      <line x1="18" y1="6" x2="6" y2="18"/>
+      <line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  )
+}
+function IconArrowLeft({ className='' }:{ className?:string }){
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className + ' w-4 h-4'}>
+      <polyline points="15 18 9 12 15 6"/>
+    </svg>
+  )
+}
+// New service icons
+function IconCar({ className='' }:{ className?:string }){
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className + ' w-6 h-6'}>
+      <path d="M3 13l2-5a2 2 0 0 1 2-1h10a2 2 0 0 1 2 1l2 5"/>
+      <rect x="3" y="13" width="18" height="6" rx="2"/>
+      <circle cx="7.5" cy="17" r="1"/>
+      <circle cx="16.5" cy="17" r="1"/>
+    </svg>
+  )
+}
+function IconHomeClean({ className='' }:{ className?:string }){
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className + ' w-6 h-6'}>
+      <path d="M3 10l9-7 9 7"/>
+      <path d="M9 22V12h6v10"/>
+      <path d="M5 15h2m10 0h2"/>
+    </svg>
+  )
+}
+function IconTruck({ className='' }:{ className?:string }){
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className + ' w-6 h-6'}>
+      <rect x="1" y="7" width="13" height="10" rx="2"/>
+      <path d="M14 10h4l3 3v4h-7z"/>
+      <circle cx="5.5" cy="18" r="1.5"/>
+      <circle cx="18.5" cy="18" r="1.5"/>
+    </svg>
+  )
+}
+function IconLeaf({ className='' }:{ className?:string }){
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className + ' w-6 h-6'}>
+      <path d="M3 21c9-9 18-6 18-18 0 0-12 0-18 6 0 0 4 4 6 6"/>
+    </svg>
+  )
+}
+function IconWindow({ className='' }:{ className?:string }){
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className + ' w-6 h-6'}>
+      <rect x="3" y="3" width="18" height="18" rx="2"/>
+      <path d="M3 9h18M12 3v18"/>
+    </svg>
+  )
+}
+function IconWrench({ className='' }:{ className?:string }){
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className + ' w-6 h-6'}>
+      <path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2 2-4-4 2-2z"/>
+    </svg>
+  )
+}
+function ServiceIcon({ code, className='' }:{ code?:string; className?:string }){
+  switch(code){
+    case 'car': return <IconCar className={className}/>;
+    case 'home': return <IconHomeClean className={className}/>;
+    case 'truck': return <IconTruck className={className}/>;
+    case 'leaf': return <IconLeaf className={className}/>;
+    case 'window': return <IconWindow className={className}/>;
+    case 'wrench': return <IconWrench className={className}/>;
+    default: return <IconSparkles className={className}/>;
+  }
+}
+
+// ————————————————————————————————————————————————
+// UI PRIMITIVES
+// ————————————————————————————————————————————————
+function ButtonPrimary({ children, small, onClick }:{ children:any; small?:boolean; onClick?:()=>void }) {
+  return (
+    <button onClick={onClick} className={
+      `inline-flex items-center justify-center rounded-2xl bg-[#E7A637] text-[#003A34] font-semibold shadow-[0_4px_0_0_#C88C2C] hover:brightness-105 active:translate-y-0.5 active:shadow-[0_2px_0_0_#C88C2C] ` +
+      (small ? 'px-3 py-1.5 text-sm' : 'px-6 py-3')
+    }>
+      {children}
+      <IconChevronRight className="ml-2"/>
+    </button>
+  );
+}
+function ButtonSecondary({ children, onClick }:{ children:any; onClick?:()=>void }) {
+  return (
+    <button onClick={onClick} className="inline-flex items-center justify-center rounded-2xl border-2 border-[#E7A637] text-[#E7A637] px-6 py-3 font-semibold hover:bg-[#E7A637]/10">{children}</button>
+  );
+}
+function ButtonTertiary({ children, small, onClick }:{ children:any; small?:boolean; onClick?:()=>void }) {
+  return (
+    <button onClick={onClick} className={(small ? 'px-3 py-1.5 text-sm' : 'px-5 py-2.5') + " inline-flex items-center justify-center rounded-2xl text-[#003A34] ring-1 ring-[#003A34]/20 bg-white hover:bg-[#003A34]/5"}>{children}</button>
+  );
+}
+function Badge({ children }:{ children:any }) {
+  return (
+    <span className="inline-flex items-center rounded-full bg-white/60 px-3 py-1 text-sm font-semibold text-[#3D6353] border border-black/10">{children}</span>
+  );
+}
+function InfoCard({ title, body, cta }:{ title:string; body:string; cta:string }) {
+  return (
+    <div className="rounded-3xl bg-white ring-1 ring-black/10 p-6 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"><h3 className="text-xl font-extrabold text-[#003A34]">{title}</h3><p className="mt-2 text-[#3D6353]">{body}</p><button className="mt-4 rounded-2xl border-2 border-[#E7A637] text-[#E7A637] px-4 py-2 font-semibold">{cta}</button></div>
+  );
+}
+
+// ————————————————————————————————————————————————
+// DATA
+// ————————————————————————————————————————————————
+const cards = [
+  { title: "Car Cleaning & Detailing", tagline: "Professional interior & exterior care", price: "From $80", icon: 'car' },
+  { title: "Home Cleaning", tagline: "Reliable, thorough home cleaning", price: "From $50/hr", icon: 'home' },
+  { title: "Dump Runs", tagline: "Rubbish & green waste removal", price: "From $80/m³", icon: 'truck' },
+  { title: "Lawn & Garden", tagline: "Mowing, edging, hedges, tidy‑ups", price: "From $50", icon: 'leaf' },
+  { title: "Window Cleaning", tagline: "Streak‑free residential & commercial", price: "From $—", icon: 'window' },
+  { title: "Property Maintenance", tagline: "Small fixes, big difference", price: "Custom quote", icon: 'wrench' }
+]
+const steps = [
+  { i: 1, t: "Pick a service", d: "Choose what you need" },
+  { i: 2, t: "Tell us size & timing", d: "Share scope, size & preferred time" },
+  { i: 3, t: "Get your quote", d: "We confirm scope & price, then schedule" }
+]
+const stats = [
+  { label: "Hours of support delivered (monthly)", value: "128" },
+  { label: "Windows cleaned (YTD)", value: "2,340" },
+  { label: "Lawns made tidy (YTD)", value: "1,176" }
+]
+const products = [
+  { id: 'tee', name: 'BAW Logo Tee', price: 35, imageAlt: 'T-shirt mock', tagline: 'Soft cotton, relaxed fit' },
+  { id: 'cap', name: 'Mustard Work Cap', price: 29, imageAlt: 'Cap mock', tagline: 'Low profile, adjustable' },
+  { id: 'gloves', name: 'Garden Gloves', price: 18, imageAlt: 'Gloves mock', tagline: 'Grip palms, washable' },
+  { id: 'bottle', name: 'Hydrate Bottle', price: 22, imageAlt: 'Bottle mock', tagline: 'BPA-free, 750ml' },
+]
+
+// ————————————————————————————————————————————————
+// UTIL
+// ————————————————————————————————————————————————
+function extractPrice(label:string){ const m = label.match(/\$([0-9]+)/); return m? Number(m[1]) : 0 }
+
+// ——— Hero Illustration with resilient fallbacks
+function HeroIllustration({ className = '', alt = 'Buds at Work illustration' }:{ className?:string; alt?:string }) {
+  const [idx, setIdx] = useState(0)
+  const [failed, setFailed] = useState(false)
+  const candidates = ['/illustrations/buds-hero.svg','/illustrations/buds-hero%202.svg','/illustrations/buds-hero-illustration.svg']
+  if (failed) {
+    return (
+      <svg viewBox="0 0 1200 675" xmlns="http://www.w3.org/2000/svg" className={className} role="img" aria-label={alt}>
+        <rect width="1200" height="675" fill="#FAF0D9"/>
+        <rect y="520" width="1200" height="155" fill="#DDCDA2"/>
+        <g>
+          <ellipse cx="380" cy="470" rx="150" ry="110" fill="#003A34"/>
+          <circle cx="355" cy="340" r="65" fill="#FAF0D9"/>
+          <path d="M330 350c10 15 40 15 50 0" stroke="#003A34" strokeWidth="10" fill="none" strokeLinecap="round"/>
+          <path d="M300 320c30-25 140-25 170 0" stroke="#003A34" strokeWidth="12" fill="none" strokeLinecap="round"/>
+          <path d="M300 320c30-25 140-25 170 0l-20 28h-130z" fill="#E7A637"/>
+        </g>
+        <g>
+          <ellipse cx="820" cy="470" rx="150" ry="110" fill="#003A34"/>
+          <circle cx="845" cy="340" r="65" fill="#FAF0D9"/>
+          <path d="M820 350c10 15 40 15 50 0" stroke="#003A34" strokeWidth="10" fill="none" strokeLinecap="round"/>
+          <path d="M775 320c30-25 140-25 170 0" stroke="#003A34" strokeWidth="12" fill="none" strokeLinecap="round"/>
+          <path d="M775 320c30-25 140-25 170 0l-20 28h-130z" fill="#E7A637"/>
+        </g>
+        <rect x="560" y="260" width="110" height="14" rx="7" fill="#E7A637"/>
+        <rect x="612" y="272" width="6" height="84" fill="#003A34"/>
+        <path d="M980 560c40-40 90-40 120 0-40 5-80 5-120 0z" fill="#9CCC65"/>
+        <g fill="#EF5350"><circle cx="230" cy="200" r="6"/><circle cx="980" cy="220" r="6"/><circle cx="620" cy="180" r="6"/></g>
+      </svg>
+    )
+  }
+  const src = candidates[Math.min(idx, candidates.length - 1)]
+  return (
+    <img src={src} alt={alt} className={className} onError={()=>{ if (idx < candidates.length - 1) setIdx(idx + 1); else setFailed(true) }} />
+  )
+}
+
+// ————————————————————————————————————————————————
+// SHOP PAGE (embedded route) — uses same card rhythm
+// ————————————————————————————————————————————————
+function ShopPage({ onBack, onAddProduct }:{ onBack:()=>void; onAddProduct:(p:{id:string;name:string;price:number})=>void }){
+  const cats = ['All','Apparel','Work Gear','Favourites']
+  const [active, setActive] = useState('All')
+  const filtered = products
+  return (
+    <main className="mx-auto max-w-[1600px] px-6 py-10">
+      <button onClick={onBack} className="mb-6 inline-flex items-center gap-2 text-[#3D6353] hover:underline"><IconArrowLeft/> Back to home</button>
+      <h1 className="text-4xl font-black">Shop</h1>
+      <div className="mt-6 flex flex-wrap gap-3">
+        {cats.map(c => (
+          <button key={c} onClick={()=>setActive(c)} className={`rounded-full px-4 py-2 text-sm font-semibold border ${active===c? 'bg-[#003A34] text-[#FAF0D9] border-[#003A34]' : 'border-[#003A34] text-[#003A34]'}`}>{c}</button>
+        ))}
+      </div>
+      <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filtered.map(p => (
+          <div key={p.id} className="rounded-3xl bg-white ring-1 ring-black/10 p-6 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+            <div className="aspect-[4/3] w-full rounded-2xl bg-[#DDCDA2] grid place-items-center"><span className="text-sm font-semibold text-[#003A34] opacity-80">{p.imageAlt}</span></div>
+            <h3 className="mt-4 text-xl font-extrabold text-[#003A34]">{p.name}</h3>
+            <p className="mt-1 text-[#3D6353]">{p.tagline}</p>
+            <div className="mt-4 flex items-center justify-between"><span className="text-lg font-extrabold">${p.price.toFixed(0)}</span><ButtonPrimary small onClick={()=>onAddProduct({ id:p.id, name:p.name, price:p.price })}>Add to cart</ButtonPrimary></div>
+          </div>
+        ))}
+      </div>
+    </main>
+  )
+}
+
+// ————————————————————————————————————————————————
+// DEV SMOKE TESTS (non-blocking)
+// ————————————————————————————————————————————————
+if (typeof window !== 'undefined') {
+  console.assert(extractPrice('From $80') === 80, 'extractPrice should parse 80')
+  console.assert(extractPrice('From $50/hr') === 50, 'extractPrice should parse hourly rate 50')
+  console.assert(extractPrice('From $80/m³') === 80, 'extractPrice should handle $80/m³ → 80')
+  console.assert(extractPrice('From $—') === 0, 'extractPrice should fallback to 0 on em-dash price')
+  console.assert(extractPrice('Custom quote') === 0, 'extractPrice should fallback to 0 when no number present')
+  console.assert(extractPrice('From $120–$200') === 120, 'extractPrice should take the first number in a range')
+}
+    // Make sure it contains:  export default function BudsAtWorkHome() { ... }
+    // ==== END YOUR CODE ====
   </script>
 
-  <!-- Boot the app (supports default export or global) -->
+  <!-- Boot -->
   <script type="text/babel">
-    let Root = null;
-    try {
-      // If the module defined `export default function BudsAtWorkHome() {...}`
-      Root = (typeof BudsAtWorkHome === 'function') ? BudsAtWorkHome : Root;
-    } catch (_) {}
-
-    // Fallback: try common names
-    if (!Root) {
-      Root = (window.BudsAtWorkHome || window.App || window.Home || (() => null));
-    }
-
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(React.createElement(Root));
+    const Root =
+      (typeof BudsAtWorkHome === 'function') ? BudsAtWorkHome :
+      (window.BudsAtWorkHome || window.App || window.Home || (() => null));
+    ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(Root));
   </script>
 </body>
 </html>
