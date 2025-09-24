@@ -20,7 +20,6 @@ concurrency:
 
 jobs:
   build-and-deploy:
-    # Run on any comment that contains "/deploy", or on workflow_dispatch
     if: github.event_name != 'issue_comment' || contains(github.event.comment.body, '/deploy')
     runs-on: ubuntu-latest
     environment:
@@ -36,14 +35,12 @@ jobs:
         with:
           node-version: 20
 
-      # Safely extract the prompt and expose it as a step OUTPUT
       - name: Derive prompt
         id: derive
         shell: bash
         run: |
           if [[ "${{ github.event_name }}" == "issue_comment" ]]; then
             RAW="${{ github.event.comment.body }}"
-            # Everything after "/deploy" (trim leading spaces)
             PROMPT="$(sed -n 's#.*\/deploy[[:space:]]*##p' <<<"$RAW")"
           else
             PROMPT="${{ github.event.inputs.prompt }}"
@@ -60,32 +57,35 @@ jobs:
         shell: bash
         run: |
           set -e
-          # 1) Make sure dist/ exists
           mkdir -p dist
-
-          # 2) Pick the generator script you actually have
           PROMPT="${{ steps.derive.outputs.prompt }}"
           SCRIPT="scripts/generate_site.js"
           if [ ! -f "$SCRIPT" ] && [ -f "scripts/generate_site-3.js" ]; then
             SCRIPT="scripts/generate_site-3.js"
           fi
-
-          # 3) Run the generator (with or without prompt)
           if [ -n "$PROMPT" ]; then
-            echo "Running with prompt:"
-            printf '%s\n' "$PROMPT"
+            echo "Running with prompt:"; printf '%s\n' "$PROMPT"
             node "$SCRIPT" --prompt "$PROMPT"
           else
             echo "No prompt provided; building with default."
             node "$SCRIPT"
           fi
 
-      # Publish THIS homepage file every time (overwrite any generated one)
+      # Publish THIS homepage every time
       - name: Publish homepage from root
         shell: bash
         run: |
           mkdir -p dist
           cp -f index.html dist/index.html
+
+      # ⬇️ Add this step to include your SVG and other assets
+      - name: Copy assets
+        shell: bash
+        run: |
+          if [ -d assets ]; then
+            mkdir -p dist/assets
+            cp -f assets/* dist/assets/ || true
+          fi
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
