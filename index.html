@@ -727,7 +727,7 @@ function extractPrice(label:string){ const m = label.match(/\$([0-9]+)/); return
 function HeroIllustration({ className = '', alt = 'Buds at Work illustration' }:{ className?:string; alt?:string }) {
   const [idx, setIdx] = useState(0)
   const [failed, setFailed] = useState(false)
-  const candidates = ['/illustrations/buds-hero.svg','/illustrations/buds-hero%202.svg','/illustrations/buds-hero-illustration.svg']
+ const candidates = ['illustrations/buds-hero.svg','illustrations/buds-hero%202.svg','illustrations/buds-hero-illustration.svg']
   if (failed) {
     return (
       <svg viewBox="0 0 1200 675" xmlns="http://www.w3.org/2000/svg" className={className} role="img" aria-label={alt}>
