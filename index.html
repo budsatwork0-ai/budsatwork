@@ -759,7 +759,6 @@ function HeroIllustration({ className = '', alt = 'Buds at Work illustration' }:
     <img src={src} alt={alt} className={className} onError={()=>{ if (idx < candidates.length - 1) setIdx(idx + 1); else setFailed(true) }} />
   )
 }
-
 // ————————————————————————————————————————————————
 // SHOP PAGE (embedded route) — uses same card rhythm
 // ————————————————————————————————————————————————
