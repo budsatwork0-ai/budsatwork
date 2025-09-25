@@ -38,14 +38,14 @@ jobs:
         with:
           node-version: 20
 
-      # Extract the prompt from an issue comment or manual input
+      # Extract prompt (from comment or manual input) as a step OUTPUT
       - name: Derive prompt
         id: derive
         shell: bash
         run: |
           if [[ "${{ github.event_name }}" == "issue_comment" ]]; then
             RAW="${{ github.event.comment.body }}"
-            # Everything after "/deploy" (trim spaces)
+            # Everything after "/deploy" (trim leading spaces)
             PROMPT="$(sed -n 's#.*\/deploy[[:space:]]*##p' <<<"$RAW")"
           else
             PROMPT="${{ github.event.inputs.prompt }}"
@@ -62,37 +62,40 @@ jobs:
         shell: bash
         run: |
           set -e
+          # 1) Ensure dist exists
           mkdir -p dist
+
+          # 2) Choose the generator script present in repo
           PROMPT="${{ steps.derive.outputs.prompt }}"
           SCRIPT="scripts/generate_site.js"
           if [ ! -f "$SCRIPT" ] && [ -f "scripts/generate_site-3.js" ]; then
             SCRIPT="scripts/generate_site-3.js"
           fi
+
+          # 3) Run the generator with/without prompt
           if [ -n "$PROMPT" ]; then
-            echo "Running with prompt:"; printf '%s\n' "$PROMPT"
+            echo "Running with prompt:"
+            printf '%s\n' "$PROMPT"
             node "$SCRIPT" --prompt "$PROMPT"
           else
             echo "No prompt provided; building with default."
             node "$SCRIPT"
           fi
 
-      # Always publish your edited homepage
-      - name: Publish homepage from root
+      # Ensure an index.html gets published even if the generator didn't make one
+      - name: Ensure homepage
         shell: bash
         run: |
           mkdir -p dist
-          cp -f index.html dist/index.html
-
-      # Include static assets (SVGs, logo, etc.)
-      - name: Copy assets
-        shell: bash
-        run: |
-          if [ -d assets ]; then
-            mkdir -p dist/assets
-            cp -f assets/* dist/assets/ || true
-          fi
-          if [ -f logo-buds-at-work.png ]; then
-            cp -f logo-buds-at-work.png dist/
+          if [ ! -f dist/index.html ]; then
+            if [ -f index.html ]; then
+              cp index.html dist/index.html
+            elif [ -f index-2.html ]; then
+              cp index-2.html dist/index.html
+            else
+              echo "❌ No dist/index.html produced and no root index.html/index-2.html to copy." >&2
+              exit 1
+            fi
           fi
 
       - name: Setup Pages
