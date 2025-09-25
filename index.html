@@ -8,29 +8,29 @@
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- React 18 + ReactDOM + Babel -->
+  <!-- React 18 + ReactDOM + Babel (production builds) -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body class="bg-[#FAF0D9] text-[#003A34]">
+  <!-- build: fresh -->
   <div id="root"></div>
 
-  <!-- PASTE YOUR ENTIRE buds_at_work_home_page_sandbox_preview-3.jsx HERE -->
+  <!-- PASTE YOUR ENTIRE COMPONENT FILE HERE -->
   <script type="text/babel" data-type="module" data-presets="react,typescript">
-    // ==== BEGIN YOUR CODE ====
-'use client'
-const { useState } = React;
+    'use client'
+    /* IMPORTANT: replace any "import { useState } from 'react'" with the line below */
+    const { useState } = React;
 
-// ————————————————————————————————————————————————
-// ROOT: wraps page UI with light state so everything "just works"
-// ————————————————————————————————————————————————
+   'use client'
+import { useState } from 'react'
+
 export default function BudsAtWorkHome() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [route, setRoute] = useState<'home'|'account'|'shop'>('home')
   type LineItem = { id:string; name:string; price:number; qty:number; kind:'service'|'product' }
   const [items, setItems] = useState<LineItem[]>([])
-
   function addItem(item: Omit<LineItem,'qty'>){
     setItems(prev => {
       const found = prev.find(i => i.id===item.id && i.kind===item.kind)
@@ -41,11 +41,9 @@ export default function BudsAtWorkHome() {
   }
   function removeItem(id:string, kind: 'service'|'product'){ setItems(prev => prev.filter(i => !(i.id===id && i.kind===kind))) }
   function setQty(id:string, kind:'service'|'product', qty:number){ setItems(prev => prev.map(i=> (i.id===id && i.kind===kind) ? { ...i, qty: Math.max(1, qty) } : i)) }
-
   const serviceItems = items.filter(i=>i.kind==='service')
   const productItems = items.filter(i=>i.kind==='product')
   const productSubtotal = productItems.reduce((s,i)=> s + i.price * i.qty, 0)
-
   return (
     <div className="min-h-screen bg-[#FAF0D9] text-[#003A34]">
       <Header
@@ -56,7 +54,6 @@ export default function BudsAtWorkHome() {
         onGoShop={()=>setRoute('shop')}
         onBookNow={()=>addItem({ id:'quote', name:'Quote request', price:0, kind:'service' })}
       />
-
       {route==='home' && (
         <>
           <Hero onAddService={(name)=>addItem({ id:name, name, price:0, kind:'service' })} />
@@ -70,21 +67,18 @@ export default function BudsAtWorkHome() {
           <Footer />
         </>
       )}
-
       {route==='account' && (
         <>
           <AccountPage onBack={()=>setRoute('home')} />
           <Footer />
         </>
       )}
-
       {route==='shop' && (
         <>
           <ShopPage onBack={()=>setRoute('home')} onAddProduct={(p)=>addItem({ id:p.id, name:p.name, price:p.price, kind:'product' })} />
           <Footer />
         </>
       )}
-
       <QuoteCartDrawer
         open={drawerOpen}
         onClose={()=>setDrawerOpen(false)}
@@ -98,15 +92,12 @@ export default function BudsAtWorkHome() {
   )
 }
 
-// ————————————————————————————————————————————————
-// HEADER
-// ————————————————————————————————————————————————
 function Header({ route, onOpenDrawer, onGoHome, onGoAccount, onGoShop, onBookNow }:{ route:'home'|'account'|'shop'; onOpenDrawer:()=>void; onGoHome:()=>void; onGoAccount:()=>void; onGoShop:()=>void; onBookNow:()=>void }){
   return (
     <header className="sticky top-0 z-30 w-full border-b border-black/5 bg-[#003A34]/95 backdrop-blur supports-[backdrop-filter]:bg-[#003A34]/80">
       <div className="mx-auto max-w-[1600px] px-4 md:px-6 lg:px-10 py-3 md:py-4 flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3 md:gap-4 min-w-0">
-         <img alt="Buds at Work logo" src="/logo-buds-at-work.png" className="h-8 w-8 rounded-lg object-contain ring-2 ring-[#E7A637]"/>
+          <img alt="Buds at Work logo" src="/logo-buds-at-work.png" className="h-8 w-8 rounded-lg object-contain ring-2 ring-[#E7A637]"/>
           <span className="text-[#FAF0D9] font-semibold tracking-wide truncate hidden lg:inline">Buds at Work</span>
         </div>
         <nav className="flex flex-1 min-w-0 items-center justify-center gap-x-3 md:gap-x-4 text-[#FAF0D9] text-[13px] md:text-[15px] overflow-x-auto whitespace-nowrap [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -126,25 +117,17 @@ function Header({ route, onOpenDrawer, onGoHome, onGoAccount, onGoShop, onBookNo
   )
 }
 
-// ————————————————————————————————————————————————
-// HERO
-// ————————————————————————————————————————————————
 function Hero({ onAddService }:{ onAddService:(name:string)=>void }){
   return (
-    <section className="mx-auto max-w-[1600px] px-6 pt-16 pb-20 grid md:grid-cols-2 items-center gap-12">
-      <div>
+    <section className="mx-auto max-w-[1600px] px-6 pt-16 pb-20">
+      <div className="max-w-3xl">
         <h1 className="font-black leading-tight text-5xl md:text-7xl">Work that empowers. <br className="hidden md:block"/>Services that shine ✨</h1>
-        <p className="mt-6 text-lg text-[#3D6353] max-w-xl">Two mates, one mission: inclusive, reliable help across cleaning, lawn & garden, windows, and dump runs — done right, by people who care.</p>
+        <p className="mt-6 text-lg text-[#3D6353]">Two mates, one mission: inclusive, reliable help across cleaning, lawn & garden, windows, and dump runs — done right, by people who care.</p>
         <div className="mt-8 flex flex-wrap gap-3">
           <ButtonPrimary onClick={()=>onAddService('Quote request')}>Start a quote</ButtonPrimary>
           <ButtonSecondary>See services & pricing</ButtonSecondary>
         </div>
         <p className="mt-5 text-sm text-[#6B7D76]">★ 4.9/5 from locals · NDIS‑friendly · Fully insured</p>
-      </div>
-      <div className="relative">
-        <div className="aspect-[16/9] w-full" aria-label="Buds at Work hero illustration">
-          <HeroIllustration className="h-full w-full object-contain object-center md:max-h-[520px] max-h-[360px]" alt="Two friendly Buds working together" />
-        </div>
       </div>
     </section>
   )
@@ -154,9 +137,6 @@ function Connector(){
   return (<div className="mx-auto max-w-[1600px] px-6"><div className="h-3 rounded-full bg-[#DDCDA2]"/></div>)
 }
 
-// ————————————————————————————————————————————————
-// SERVICES (quote-only) — REBALANCED CARDS
-// ————————————————————————————————————————————————
 function Services({ onAddService }:{ onAddService:(name:string, starting:number)=>void }){
   return (
     <section className="py-12">
@@ -167,33 +147,23 @@ function Services({ onAddService }:{ onAddService:(name:string, starting:number)
             <p className="mt-1 text-sm md:text-base text-[#3D6353]">Add services to your <strong>Quote</strong>; we’ll confirm final price after a quick chat.</p>
           </div>
         </div>
-
-        {/* Long modern tiles with balanced grid */}
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
           {cards.map((c) => (
             <article
               key={c.title}
               className="group relative overflow-hidden rounded-3xl bg-white ring-1 ring-black/10 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(0,0,0,0.08)]"
             >
-              {/* subtle top accent */}
               <div className="absolute inset-x-0 top-0 h-1 bg-[#003A34]/80"/>
-
-              {/* 3-column layout on md+: icon | content | actions */}
               <div className="grid grid-cols-1 md:grid-cols-[auto,1fr,auto] md:items-center gap-5 md:gap-6 p-6 md:p-7">
-                {/* Icon */}
                 <div className="flex md:block items-center">
                   <div className="h-12 w-12 shrink-0 rounded-2xl bg-[#003A34]/10 grid place-items-center">
                     <ServiceIcon code={c.icon} className="text-[#003A34]"/>
                   </div>
                 </div>
-
-                {/* Content */}
                 <div className="min-w-0">
                   <h3 className="text-2xl md:text-[28px] font-extrabold tracking-tight text-[#003A34]">{c.title}</h3>
                   <p className="mt-1 text-sm md:text-base text-[#3D6353] leading-relaxed">{c.tagline}</p>
                 </div>
-
-                {/* Actions */}
                 <div className="flex md:block items-center justify-between gap-3 md:gap-4">
                   <span className="inline-flex items-center rounded-full bg-[#E7A637] px-3 py-1 text-sm font-bold text-[#003A34] shadow-[0_2px_0_0_#C88C2C]">{c.price}</span>
                   <div className="flex md:mt-3 gap-2">
@@ -210,9 +180,6 @@ function Services({ onAddService }:{ onAddService:(name:string, starting:number)
   )
 }
 
-// ————————————————————————————————————————————————
-// HOW BOOKING WORKS — match card language/spacing
-// ————————————————————————————————————————————————
 function HowBookingWorks(){
   return (
     <section className="relative isolate py-16">
@@ -243,9 +210,6 @@ function HowBookingWorks(){
   )
 }
 
-// ————————————————————————————————————————————————
-// SHOP TEASER (buy now) — cards aligned with Services style
-// ————————————————————————————————————————————————
 function ShopTeaser({ onAddProduct }:{ onAddProduct:(p:{id:string; name:string; price:number})=>void }){
   return (
     <section className="py-16">
@@ -276,9 +240,6 @@ function ShopTeaser({ onAddProduct }:{ onAddProduct:(p:{id:string; name:string; 
   )
 }
 
-// ————————————————————————————————————————————————
-// IMPACT / INVOLVED / CONTACT / FOOTER — spacing unified
-// ————————————————————————————————————————————————
 function Impact(){
   return (
     <section className="py-16">
@@ -346,9 +307,6 @@ function Footer(){
   )
 }
 
-// ————————————————————————————————————————————————
-// QUOTE + CART DRAWER (two clearly separated flows)
-// ————————————————————————————————————————————————
 function QuoteCartDrawer({ open, onClose, serviceItems, productItems, productSubtotal, onQty, onRemove }:{
   open:boolean; onClose:()=>void;
   serviceItems:{id:string;name:string;price:number;qty:number;kind:'service'}[];
@@ -360,8 +318,7 @@ function QuoteCartDrawer({ open, onClose, serviceItems, productItems, productSub
   const [tab, setTab] = useState<'quote'|'cart'>('quote')
   const [stage, setStage] = useState<'view'|'form'|'sent'>('view')
   const [form, setForm] = useState({ name:'', email:'', phone:'', address:'', preferred:'', notes:'' })
-
-  function submitQuote(e: React.FormEvent){
+  function submitQuote(e: any){
     e.preventDefault()
     const to = 'budsatwork@malucare.org'
     const subject = encodeURIComponent('QUOTE REQUEST — Buds at Work')
@@ -382,7 +339,6 @@ function QuoteCartDrawer({ open, onClose, serviceItems, productItems, productSub
     window.location.href = `mailto:${to}?subject=${subject}&body=${lines}`
     setStage('sent')
   }
-
   function checkoutProducts(){
     if(productItems.length===0){ setTab('quote'); return }
     const to = 'orders@malucare.org'
@@ -400,7 +356,6 @@ function QuoteCartDrawer({ open, onClose, serviceItems, productItems, productSub
     ].join('%0A')
     window.location.href = `mailto:${to}?subject=${subject}&body=${lines}`
   }
-
   return (
     <div className={`fixed inset-0 z-50 ${open? 'pointer-events-auto' : 'pointer-events-none'}`} aria-hidden={!open}>
       <div onClick={()=>{onClose(); setStage('view')}} className={`absolute inset-0 bg-black/40 transition-opacity ${open? 'opacity-100' : 'opacity-0'}`}></div>
@@ -412,8 +367,6 @@ function QuoteCartDrawer({ open, onClose, serviceItems, productItems, productSub
           </div>
           <button onClick={()=>{onClose(); setStage('view')}} className="rounded-xl px-3 py-2 hover:bg-black/5"><IconX/></button>
         </div>
-
-        {/* QUOTE TAB */}
         {tab==='quote' && (
           stage==='view' ? (
             <>
@@ -462,8 +415,6 @@ function QuoteCartDrawer({ open, onClose, serviceItems, productItems, productSub
             </div>
           )
         )}
-
-        {/* CART TAB */}
         {tab==='cart' && (
           <>
             <div className="p-5 space-y-4 max-h-[calc(100vh-220px)] overflow-y-auto">
@@ -501,9 +452,6 @@ function QuoteCartDrawer({ open, onClose, serviceItems, productItems, productSub
   )
 }
 
-// ————————————————————————————————————————————————
-// ACCOUNT PAGE
-// ————————————————————————————————————————————————
 function AccountPage({ onBack }:{ onBack:()=>void }){
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
@@ -535,14 +483,10 @@ function AccountPage({ onBack }:{ onBack:()=>void }){
   )
 }
 
-// Utility for active nav style
 function navCls(active:boolean){
   return `hover:text-[#E7A637] ${active? 'text-[#E7A637] font-semibold' : ''}`
 }
 
-// ————————————————————————————————————————————————
-// ICONS (inline SVG)
-// ————————————————————————————————————————————————
 function IconCart({ className='' }:{ className?:string }){
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className + ' w-5 h-5'}>
@@ -591,7 +535,6 @@ function IconArrowLeft({ className='' }:{ className?:string }){
     </svg>
   )
 }
-// New service icons
 function IconCar({ className='' }:{ className?:string }){
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className + ' w-6 h-6'}>
@@ -655,9 +598,6 @@ function ServiceIcon({ code, className='' }:{ code?:string; className?:string })
   }
 }
 
-// ————————————————————————————————————————————————
-// UI PRIMITIVES
-// ————————————————————————————————————————————————
 function ButtonPrimary({ children, small, onClick }:{ children:any; small?:boolean; onClick?:()=>void }) {
   return (
     <button onClick={onClick} className={
@@ -690,9 +630,6 @@ function InfoCard({ title, body, cta }:{ title:string; body:string; cta:string }
   );
 }
 
-// ————————————————————————————————————————————————
-// DATA
-// ————————————————————————————————————————————————
 const cards = [
   { title: "Car Cleaning & Detailing", tagline: "Professional interior & exterior care", price: "From $80", icon: 'car' },
   { title: "Home Cleaning", tagline: "Reliable, thorough home cleaning", price: "From $50/hr", icon: 'home' },
@@ -718,64 +655,8 @@ const products = [
   { id: 'bottle', name: 'Hydrate Bottle', price: 22, imageAlt: 'Bottle mock', tagline: 'BPA-free, 750ml' },
 ]
 
-// ————————————————————————————————————————————————
-// UTIL
-// ————————————————————————————————————————————————
 function extractPrice(label:string){ const m = label.match(/\$([0-9]+)/); return m? Number(m[1]) : 0 }
 
-// ——— Hero Illustration with resilient fallbacks
-// make sure this exists once near the top of your <script type="text/babel"> block
-// const { useState } = React;
-
-function HeroIllustration(
-  { className = '', alt = 'Buds at Work illustration' }:
-  { className?: string; alt?: string }
-) {
-  const [failed, setFailed] = useState(false);
-  const src = 'assets/buds_at_work_clean.svg'; // ✅ your actual SVG path
-
-  if (failed) {
-    return (
-      <svg viewBox="0 0 1200 675" xmlns="http://www.w3.org/2000/svg" className={className} role="img" aria-label={alt}>
-        <rect width="1200" height="675" fill="#FAF0D9"/>
-        <rect y="520" width="1200" height="155" fill="#DDCDA2"/>
-        <g>
-          <ellipse cx="380" cy="470" rx="150" ry="110" fill="#003A34"/>
-          <circle cx="355" cy="340" r="65" fill="#FAF0D9"/>
-          <path d="M330 350c10 15 40 15 50 0" stroke="#003A34" strokeWidth="10" fill="none" strokeLinecap="round"/>
-          <path d="M300 320c30-25 140-25 170 0" stroke="#003A34" strokeWidth="12" fill="none" strokeLinecap="round"/>
-          <path d="M300 320c30-25 140-25 170 0l-20 28h-130z" fill="#E7A637"/>
-        </g>
-        <g>
-          <ellipse cx="820" cy="470" rx="150" ry="110" fill="#003A34"/>
-          <circle cx="845" cy="340" r="65" fill="#FAF0D9"/>
-          <path d="M820 350c10 15 40 15 50 0" stroke="#003A34" strokeWidth="10" fill="none" strokeLinecap="round"/>
-          <path d="M775 320c30-25 140-25 170 0" stroke="#003A34" strokeWidth="12" fill="none" strokeLinecap="round"/>
-          <path d="M775 320c30-25 140-25 170 0l-20 28h-130z" fill="#E7A637"/>
-        </g>
-        <rect x="560" y="260" width="110" height="14" rx="7" fill="#E7A637"/>
-        <rect x="612" y="272" width="6" height="84" fill="#003A34"/>
-        <path d="M980 560c40-40 90-40 120 0-40 5-80 5-120 0z" fill="#9CCC65"/>
-        <g fill="#EF5350"><circle cx="230" cy="200" r="6"/><circle cx="980" cy="220" r="6"/><circle cx="620" cy="180" r="6"/></g>
-      </svg>
-    );
-  }
-
-  return (
-    <img
-      src={src}
-      alt={alt}
-      className={className}
-      onError={() => setFailed(true)}
-      loading="eager"
-      decoding="async"
-    />
-  );
-}
-    
-// ————————————————————————————————————————————————
-// SHOP PAGE (embedded route) — uses same card rhythm
-// ————————————————————————————————————————————————
 function ShopPage({ onBack, onAddProduct }:{ onBack:()=>void; onAddProduct:(p:{id:string;name:string;price:number})=>void }){
   const cats = ['All','Apparel','Work Gear','Favourites']
   const [active, setActive] = useState('All')
@@ -803,9 +684,6 @@ function ShopPage({ onBack, onAddProduct }:{ onBack:()=>void; onAddProduct:(p:{i
   )
 }
 
-// ————————————————————————————————————————————————
-// DEV SMOKE TESTS (non-blocking)
-// ————————————————————————————————————————————————
 if (typeof window !== 'undefined') {
   console.assert(extractPrice('From $80') === 80, 'extractPrice should parse 80')
   console.assert(extractPrice('From $50/hr') === 50, 'extractPrice should parse hourly rate 50')
@@ -814,11 +692,16 @@ if (typeof window !== 'undefined') {
   console.assert(extractPrice('Custom quote') === 0, 'extractPrice should fallback to 0 when no number present')
   console.assert(extractPrice('From $120–$200') === 120, 'extractPrice should take the first number in a range')
 }
-    // Make sure it contains:  export default function BudsAtWorkHome() { ... }
-    // ==== END YOUR CODE ====
+ /* ==== BEGIN YOUR CODE (paste ALL of buds_at_work_home_page_sandbox_preview-4.jsx) ==== */
+    /* 1) Make sure the component is: export default function BudsAtWorkHome() { ... }       */
+    /* 2) Use RELATIVE asset paths for a project page (no leading "/"):                      */
+    /*    - logo:    "logo-buds-at-work.png"                                                 */
+    /*    - hero:    "assets/buds_at_work_clean.svg"                                         */
+    /* 3) If your HeroIllustration used rotating candidates, simplify to that one asset.     */
+    /* ==== END YOUR CODE ==== */
   </script>
 
-  <!-- Boot -->
+  <!-- Boot the app -->
   <script type="text/babel">
     const Root =
       (typeof BudsAtWorkHome === 'function') ? BudsAtWorkHome :
@@ -827,3 +710,4 @@ if (typeof window !== 'undefined') {
   </script>
 </body>
 </html>
+
