@@ -106,7 +106,7 @@ function Header({ route, onOpenDrawer, onGoHome, onGoAccount, onGoShop, onBookNo
     <header className="sticky top-0 z-30 w-full border-b border-black/5 bg-[#003A34]/95 backdrop-blur supports-[backdrop-filter]:bg-[#003A34]/80">
       <div className="mx-auto max-w-[1600px] px-4 md:px-6 lg:px-10 py-3 md:py-4 flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3 md:gap-4 min-w-0">
-          <img alt="Buds at Work logo" src="/logo-buds-at-work.png" className="h-8 w-8 rounded-lg object-contain ring-2 ring-[#E7A637]"/>
+         <img alt="Buds at Work logo" src="/logo-buds-at-work.png" className="h-8 w-8 rounded-lg object-contain ring-2 ring-[#E7A637]"/>
           <span className="text-[#FAF0D9] font-semibold tracking-wide truncate hidden lg:inline">Buds at Work</span>
         </div>
         <nav className="flex flex-1 min-w-0 items-center justify-center gap-x-3 md:gap-x-4 text-[#FAF0D9] text-[13px] md:text-[15px] overflow-x-auto whitespace-nowrap [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -724,10 +724,16 @@ const products = [
 function extractPrice(label:string){ const m = label.match(/\$([0-9]+)/); return m? Number(m[1]) : 0 }
 
 // ——— Hero Illustration with resilient fallbacks
-function HeroIllustration({ className = '', alt = 'Buds at Work illustration' }:{ className?:string; alt?:string }) {
-  const [idx, setIdx] = useState(0)
-  const [failed, setFailed] = useState(false)
- const candidates = ['illustrations/buds-hero.svg','illustrations/buds-hero%202.svg','illustrations/buds-hero-illustration.svg']
+// make sure this exists once near the top of your <script type="text/babel"> block
+// const { useState } = React;
+
+function HeroIllustration(
+  { className = '', alt = 'Buds at Work illustration' }:
+  { className?: string; alt?: string }
+) {
+  const [failed, setFailed] = useState(false);
+  const src = 'assets/buds_at_work_clean.svg'; // ✅ your actual SVG path
+
   if (failed) {
     return (
       <svg viewBox="0 0 1200 675" xmlns="http://www.w3.org/2000/svg" className={className} role="img" aria-label={alt}>
@@ -752,13 +758,21 @@ function HeroIllustration({ className = '', alt = 'Buds at Work illustration' }:
         <path d="M980 560c40-40 90-40 120 0-40 5-80 5-120 0z" fill="#9CCC65"/>
         <g fill="#EF5350"><circle cx="230" cy="200" r="6"/><circle cx="980" cy="220" r="6"/><circle cx="620" cy="180" r="6"/></g>
       </svg>
-    )
+    );
   }
-  const src = candidates[Math.min(idx, candidates.length - 1)]
+
   return (
-    <img src={src} alt={alt} className={className} onError={()=>{ if (idx < candidates.length - 1) setIdx(idx + 1); else setFailed(true) }} />
-  )
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      onError={() => setFailed(true)}
+      loading="eager"
+      decoding="async"
+    />
+  );
 }
+    
 // ————————————————————————————————————————————————
 // SHOP PAGE (embedded route) — uses same card rhythm
 // ————————————————————————————————————————————————
