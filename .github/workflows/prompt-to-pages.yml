@@ -20,6 +20,7 @@ concurrency:
 
 jobs:
   build-and-deploy:
+    # Run on any comment that contains "/deploy", or on manual dispatch
     if: github.event_name != 'issue_comment' || contains(github.event.comment.body, '/deploy')
     runs-on: ubuntu-latest
     environment:
@@ -27,20 +28,24 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
+      # Extract the prompt from an issue comment or manual input
       - name: Derive prompt
         id: derive
         shell: bash
         run: |
           if [[ "${{ github.event_name }}" == "issue_comment" ]]; then
             RAW="${{ github.event.comment.body }}"
+            # Everything after "/deploy" (trim spaces)
             PROMPT="$(sed -n 's#.*\/deploy[[:space:]]*##p' <<<"$RAW")"
           else
             PROMPT="${{ github.event.inputs.prompt }}"
@@ -71,20 +76,23 @@ jobs:
             node "$SCRIPT"
           fi
 
-      # Publish THIS homepage every time
+      # Always publish your edited homepage
       - name: Publish homepage from root
         shell: bash
         run: |
           mkdir -p dist
           cp -f index.html dist/index.html
 
-      # ⬇️ Add this step to include your SVG and other assets
+      # Include static assets (SVGs, logo, etc.)
       - name: Copy assets
         shell: bash
         run: |
           if [ -d assets ]; then
             mkdir -p dist/assets
             cp -f assets/* dist/assets/ || true
+          fi
+          if [ -f logo-buds-at-work.png ]; then
+            cp -f logo-buds-at-work.png dist/
           fi
 
       - name: Setup Pages
